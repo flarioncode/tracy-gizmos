@@ -1,0 +1,5 @@
+# Compiled files and stuff.
+target/
+
+# We are making a library here.
+Cargo.lock
