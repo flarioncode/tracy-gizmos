@@ -19,7 +19,8 @@ Licensed under either of
 
 at your option.
 
-`@Incomplete` Add information about Tracy license.
+Note that the Tracy public part, that this crate uses and embeds, is
+licensed under the [3-clause BSD license](sys/LICENSE-tracy).
 
 ### Contribution
 

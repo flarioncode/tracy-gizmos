@@ -2,7 +2,7 @@
 name       = "tracy-gizmos-sys"
 version    = "0.1.0" # @Bug Use Tracy's version.
 authors    = ["Denys Mentiei <endden@gmail.com>"]
-license    = "MIT OR Apache-2.0" # @Incomplete Add Tracy's license
+license    = "MIT OR Apache-2.0"
 repository = "https://github.com/den-mentiei/tracy-gizmos"
 edition    = "2021"
 
