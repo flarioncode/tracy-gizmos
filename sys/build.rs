@@ -22,7 +22,7 @@ fn main() {
 		.allowlist_item("^___tracy.*")
 		.must_use_type("TracyCZoneCtx")
 		.explicit_padding(true) // @Speed Re-think if needed.
-		.no_copy("^___tracy.*")
+		// .no_copy("^___tracy.*") // @Incomplete Either Copy or Default (for mem::take) are needed :(
 		.sort_semantically(true)
 		.layout_tests(false)
 		.merge_extern_blocks(true)
