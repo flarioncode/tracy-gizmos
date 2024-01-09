@@ -18,7 +18,7 @@ fn main() {
 	// libclang.
 	let bindings = bindgen::Builder::default()
 		.header(tracy.join("tracy/TracyC.h").to_string_lossy())
-		.clang_args(["-DTRACY_ENABLE", "-DTRACY_MANUAL_LIFETIME"])
+		.clang_args(["-DTRACY_ENABLE", "-DTRACY_MANUAL_LIFETIME", "-DTRACY_DELAYED_INIT"])
 		.allowlist_item("^___tracy.*")
 		.must_use_type("TracyCZoneCtx")
 		.explicit_padding(true) // @Speed Re-think if needed.
@@ -49,6 +49,8 @@ fn main() {
 		// We always enable it to simplify things. If profiling is not needed,
 		// this crate as a dependency could be optional.
 		.define("TRACY_ENABLE", None)
+		.define("TRACY_MANUAL_LIFETIME", None)
+		.define("TRACY_DELAYED_INIT", None)
 		.opt_level(3) // We always optimize as it is important for dev builds, too.
 		.compile("tracy-client")
 }

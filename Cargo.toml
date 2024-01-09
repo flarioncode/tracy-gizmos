@@ -9,7 +9,13 @@ keywords   = ["profiler", "performance", "tracy", "api-bindings"]
 categories = ["development-tools::profiling", "api-bindings"]
 edition    = "2021"
 
-[dependencies]
+[dependencies.sys]
+package = "tracy-gizmos-sys"
+path    = "sys"
 
 [workspace]
 members = ["sys"]
+
+[features]
+default = ["enabled"] # @Incomplete Remove this, it is for testing of the initial implementation.
+enabled = []
