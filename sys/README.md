@@ -35,7 +35,7 @@ Just do the following from the git repository root:
 ```sh
 # switch back to the tracy's master and update it
 $ git checkout staging-tracy
-$ git pull tracy-upstream/master
+$ git pull tracy-upstream master
 
 # update the subdirectory branch with changes received above
 $ git subtree split -P public --annotate="Tracy: " --rejoin -b tracy-public

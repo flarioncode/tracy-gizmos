@@ -1,6 +1,6 @@
 [package]
 name       = "tracy-gizmos-sys"
-version    = "0.1.0" # @Bug Use Tracy's version.
+version    = "0.10.0"
 authors    = ["Denys Mentiei <endden@gmail.com>"]
 license    = "MIT OR Apache-2.0"
 repository = "https://github.com/den-mentiei/tracy-gizmos"
