@@ -11,6 +11,17 @@ might be easier.
 We are getting Tracy's `master` for now and can later switch to stable
 release tags in the future.
 
+## Bindings
+
+Bindings are generated via `bindgen` and are commited as a `src/`
+part. It allows to build this crate quickly and without LLVM (bindgen
+requires libclan to do its thing).
+
+When `tracy/` is updated, the bindings should be regenerated:
+``` sh
+$ cargo clean && cargo build -F bindgen
+```
+
 ## Initial setup
 
 Just do the following from the git repository root:

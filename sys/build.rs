@@ -7,31 +7,30 @@ fn main() {
 	);
 	tracy.push("tracy");
 
-	let mut out_path = PathBuf::from(
-		env::var("CARGO_MANIFEST_DIR").expect("Failed to get the output directory.")
-	);
-	out_path.push("src");
+	#[cfg(feature = "bindgen")]
+	{
+		let mut out_path = PathBuf::from(
+			env::var("CARGO_MANIFEST_DIR").expect("Failed to get the output directory.")
+		);
+		out_path.push("src");
 
-	// @Incomplete Feature-gate this, so we can just commit the
-	// bindings to the repository and skip requiring the LLVM to build
-	// this crate. LLVM is needed due to bindgen's dependency on
-	// libclang.
-	let bindings = bindgen::Builder::default()
-		.header(tracy.join("tracy/TracyC.h").to_string_lossy())
-		.clang_args(["-DTRACY_ENABLE", "-DTRACY_MANUAL_LIFETIME", "-DTRACY_DELAYED_INIT"])
-		.allowlist_item("^___tracy.*")
-		.must_use_type("TracyCZoneCtx")
-		.explicit_padding(true) // @Speed Re-think if needed.
-		// .no_copy("^___tracy.*") // @Incomplete Either Copy or Default (for mem::take) are needed :(
-		.sort_semantically(true)
-		.layout_tests(false)
-		.merge_extern_blocks(true)
-		.generate()
-		.expect("Failed to generate bindings.");
+		let bindings = bindgen::Builder::default()
+			.header(tracy.join("tracy/TracyC.h").to_string_lossy())
+			.clang_args(["-DTRACY_ENABLE", "-DTRACY_MANUAL_LIFETIME", "-DTRACY_DELAYED_INIT"])
+			.allowlist_item("^___tracy.*")
+			.must_use_type("TracyCZoneCtx")
+			.explicit_padding(true) // @Speed Re-think if needed.
+			// .no_copy("^___tracy.*") // @Incomplete Either Copy or Default (for mem::take) are needed :(
+			.sort_semantically(true)
+			.layout_tests(false)
+			.merge_extern_blocks(true)
+			.generate()
+			.expect("Failed to generate bindings.");
 
-	bindings
-		.write_to_file(out_path.join("bindings.rs"))
-		.expect("Failed to write the bindings.");
+		bindings
+			.write_to_file(out_path.join("bindings.rs"))
+			.expect("Failed to write the bindings.");
+	}
 
 	// We can use `pkg_config` to find the library in the system.
 	// However, it is not that easy on Windows and dealing with
