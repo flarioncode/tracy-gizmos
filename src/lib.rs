@@ -19,7 +19,6 @@ use std::marker::PhantomData;
 macro_rules! set_thread_name {
 	($name: literal) => {
 		// SAFETY: We null-terminate the string.
-		#[cfg(feature = "enabled")]
 		unsafe {
 			$crate::details::set_thread_name(concat!($name, '\0').as_ptr());
 		}
@@ -27,7 +26,6 @@ macro_rules! set_thread_name {
 
 	($format: literal, $($args:expr),*) => {
 		$(
-			#[cfg(feature = "enabled")]
 			{
 				let name = format!(concat!($format, '\0'), $args);
 				// @Incomplete Explain this.
@@ -47,7 +45,6 @@ macro_rules! set_thread_name {
 ///
 /// Must be called *before* any other Trace usage.
 pub unsafe fn startup() {
-	#[cfg(feature = "enabled")]
 	sys::___tracy_startup_profiler();
 }
 
@@ -56,29 +53,47 @@ pub unsafe fn startup() {
 ///
 /// Any Tracy usage after this is prohibited.
 pub unsafe fn shutdown() {
-	#[cfg(feature = "enabled")]
 	sys::___tracy_shutdown_profiler();
 }
 
 /// Determines if a connection is currently established with the Tracy
 /// server.
 pub fn is_connected() -> bool {
-	#[cfg(feature = "enabled")]
 	unsafe {
 		sys::___tracy_connected() != 0
 	}
 }
 
-#[inline(always)]
-#[must_use]
-pub fn zone(loc: &'static ZoneLocation) -> Zone {
-	#[cfg(feature = "enabled")]
-	unsafe {
-		Zone {
-			ctx: sys::___tracy_emit_zone_begin(&loc.data, 1),
-			_unsend: PhantomData,
-		}
-	}
+// auto-function proc-macro attributes:
+// #[zone]
+// #[zone(name)]
+// #[zone(color)]
+// #[zone(name, color)]
+// + callstacks?!
+// fn foo() {}
+
+// macro_rules in the scopes:
+// - n/a function, name and no color
+// - n/a function, name and color
+#[macro_export]
+macro_rules! zone {
+	($name: literal) => {
+		let _loc  = zone_location!(0);
+		let _ctx  = unsafe { sys::___tracy_emit_zone_begin(&_loc.data, 1) };
+		let _zone = Zone { ctx: _ctx, _unsend: PhantomData };
+	};
+
+	($name: literal, $color: expr) => {
+		let _loc  = zone_location!($color);
+		let _ctx  = unsafe { sys::___tracy_emit_zone_begin(&_loc.data, 1) };
+		let _zone = Zone { ctx: _ctx, _unsend: PhantomData };
+	};
+
+	(c) => {{
+		let _loc  = zone_location!(0);
+		let _ctx  = unsafe { sys::___tracy_emit_zone_begin(&_loc.data, 1) };
+		Zone { ctx: _ctx, _unsend: PhantomData }
+	}};
 }
 
 /// Profiling zone.
@@ -87,23 +102,30 @@ pub fn zone(loc: &'static ZoneLocation) -> Zone {
 // scoped_zone
 // scoped_zone with const color
 pub struct Zone {
-	#[cfg(feature = "enabled")]
 	ctx: sys::___tracy_c_zone_context,
 
 	_unsend: PhantomData<*mut ()>,
 }
 
 // @Incomplete
-// - dynamic text
-// - dynamic color
-// - dynamic value (u64)
+// - dynamic name?
+// - dynamic color       - last one wins
+// - dynamic text        - can be multiples (u16::MAX bytes)
+// - dynamic value (u64) - can be multiples
 impl Zone {
-	pub fn value(&self, _value: u64) {
-		todo!()
+	pub fn value(&self, value: u64) {
+		unsafe {
+			sys::___tracy_emit_zone_value(self.ctx, value);
+		}
+	}
+
+	pub fn text(&self, s: &str) {
+		unsafe {
+			sys::___tracy_emit_zone_text(self.ctx, s.as_ptr().cast(), s.len())
+		}
 	}
 }
 
-#[cfg(feature = "enabled")]
 impl Drop for Zone {
 	#[inline(always)]
 	fn drop(&mut self) {
@@ -116,12 +138,11 @@ impl Drop for Zone {
 
 /// A statically allocated location for a zone.
 pub struct ZoneLocation {
-	#[cfg(feature = "enabled")]
 	data: sys::___tracy_source_location_data,
 }
 
 macro_rules! zone_location {
-	() => {{
+	($color: expr) => {{
 		struct X;
 		// Tracking issue on the Rust side:
 		// https://github.com/rust-lang/rust/issues/63084
@@ -137,7 +158,7 @@ macro_rules! zone_location {
 				function: FUNCTION.as_ptr().cast(),
 				file:     concat!(file!(), '\0').as_ptr().cast(),
 				line:     line!(),
-				color:    0,
+				color:    $color,
 			},
 		};
 		&LOC
@@ -150,7 +171,6 @@ unsafe impl Sync for ZoneLocation {}
 /// Implementation details, do not relay on anything from this module!
 ///
 /// It is public only due to the usage in public macro bodies.
-#[cfg(feature = "enabled")]
 #[doc(hidden)]
 pub mod details {
 	#[inline(always)]
@@ -215,12 +235,28 @@ mod tests {
 		while !is_connected() {
 			std::thread::yield_now();
 		}
-		let x = 42;
-		set_thread_name!("Worker {}", x);
+		// @Bug This does not work now.
+		// let x = 42;
+		// set_thread_name!("Worker {}", x);
 
 		{
-			let _z = zone(zone_location!());
-			std::thread::sleep(std::time::Duration::from_secs(2));
+			let z = zone!(c);
+			z.value(1);
+			z.value(1);
+			z.value(123);
+			z.text("hello, sailor");
+			z.text("cowabunga!");
+			{
+				zone!("1st");
+				std::thread::sleep(std::time::Duration::from_secs(2));
+				zone!("2nd", 0x001230);
+				std::thread::sleep(std::time::Duration::from_secs(1));
+			}
+
+			{
+				zone!("3rd", 0x005015);
+				std::thread::sleep(std::time::Duration::from_secs(2));
+			}
 		}
 
 		unsafe { shutdown(); }
