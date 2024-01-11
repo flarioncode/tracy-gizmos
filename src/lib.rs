@@ -7,7 +7,9 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 
-// @Incomplete
+mod color;
+
+pub use color::*;
 
 /// Sets the current thread's name.
 ///
