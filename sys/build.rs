@@ -20,7 +20,6 @@ fn main() {
 			.allowlist_item("^___tracy.*")
 			.must_use_type("TracyCZoneCtx")
 			.explicit_padding(true) // @Speed Re-think if needed.
-			// .no_copy("^___tracy.*") // @Incomplete Either Copy or Default (for mem::take) are needed :(
 			.sort_semantically(true)
 			.layout_tests(false)
 			.merge_extern_blocks(true)
@@ -41,6 +40,15 @@ fn main() {
 
 	// @Incomplete Link dependencies?
 
+	// @Speed Should we actually "trust" Tracy and disable asserts for
+	// all builds just for the sake of dev builds performance, which
+	// is already important and is even more important with any
+	// profiling overhead involved.
+	let debug = match env::var("PROFILE").as_deref() {
+		Ok("release") => "NDEBUG",
+		_             => "DEBUG",
+	};
+
 	let mut builder = cc::Build::new();
 	builder
 		.cpp(true)
@@ -50,6 +58,7 @@ fn main() {
 		.define("TRACY_ENABLE", None)
 		.define("TRACY_MANUAL_LIFETIME", None)
 		.define("TRACY_DELAYED_INIT", None)
+		.define(debug, None)
 		.opt_level(3) // We always optimize as it is important for dev builds, too.
 		.compile("tracy-client")
 }
