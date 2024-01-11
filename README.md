@@ -12,8 +12,8 @@
 
 ## TODO
 
-- [ ] basic things
-- [ ] basic features
+- [x] basic things
+- [x] basic features
 - [ ] gfx things
 - [ ] `TRACY_NO_CRASH_HANDLER` exposed as a feature
 - [ ] define `TRACY_NO_FRAME_IMAGE` as it is not interesing for now

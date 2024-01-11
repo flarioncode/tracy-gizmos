@@ -1,11 +1,14 @@
 // @Cleanup Feature-gate this for the nightly enjoyers?
 #![feature(const_type_name)] // :UnstableTypeName
+#![warn(missing_docs)]
 
+//! @Incomplete Document this or attach the readme.
+
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 
 // @Incomplete
 
-// @Incomplete Add examples.
 /// Sets the current thread's name.
 ///
 /// It is recommended to *always* use it in every thread, which uses
@@ -27,40 +30,105 @@ macro_rules! set_thread_name {
 	($format: literal, $($args:expr),*) => {
 		$(
 			{
-				let name = format!(concat!($format, '\0'), $args);
-				// @Incomplete Explain this.
-				let static_name: &'static str = name.leak();
+				let name = format!(concat!($format, '\0'), $args).into_bytes();
 				// SAFETY: We null-terminated the string during formatting.
 				unsafe {
-					$crate::details::set_thread_name(static_name.as_ptr());
+					let name = std::ffi::CString::from_vec_with_nul_unchecked(name);
+					$crate::details::set_thread_name(name.as_ptr().cast());
 				}
 			}
 		)*
 	};
 }
 
-// @Safety We can have an atomic usize with init thread id to prevent
-// multiple inits and also ensure the same thread does the shutdown. :Lifetime
-/// Initializes the Tracy profiler.
+static STARTED: AtomicBool = AtomicBool::new(false);
+
+/// Represents a Tracy client.
 ///
-/// Must be called *before* any other Trace usage.
-pub unsafe fn startup() {
-	sys::___tracy_startup_profiler();
+/// Obtaining a `TracyClient` is *required* to instrument the code.
+/// Otherwise, the behaviour of instrumenting is undefined.
+///
+/// It is not allowed to have multiple copies of the `TracyClient`.
+///
+/// When it is dropped, the Tracy connection will be shutdown.
+pub struct TracyClient(PhantomData<*mut ()>);
+
+impl TracyClient {
+	/// Returns `true` if the profiling is enabled.
+	///
+	/// Result of this is determined during compile-time and will
+	/// never change after that.
+	pub const fn is_enabled() -> bool {
+		cfg!(feature = "enabled")
+	}
+
+	/// Initializes the Tracy profiler.
+	///
+	/// Must be called *before* any other Tracy usage.
+	///
+	/// # Panics
+	///
+	/// Only one alive client can exist. Hence any consecutive
+	/// `start()` will panic, unless previously started client is
+	/// dropped.
+	///
+	/// # Examples
+	///
+	/// ```no_run
+	/// use tracy_gizmos::TracyClient;
+	///
+	/// fn main() {
+	/// 	let tracy = TracyClient::start();
+	/// }
+	/// ```
+	pub fn start() -> Self {
+		if STARTED.swap(true, Ordering::Acquire) {
+			panic!("Tracy client has been started already.");
+		}
+		// SAFETY: Check above ensures this happens once.
+		unsafe {
+			sys::___tracy_startup_profiler();
+		}
+		Self(PhantomData)
+	}
+
+	/// Returns `true` if a connection is currently established with
+	/// the Tracy server.
+	///
+	/// # Examples
+	///
+	/// This method can be used to ensure the profiler connection
+	/// _before_ doing any profiled work.
+	///
+	/// ```no_run
+	/// use tracy_gizmos::TracyClient;
+	///
+	/// fn main() {
+	/// 	let tracy = TracyClient::start();
+	/// 	while !tracy.is_connected() {
+	/// 		std::thread::yield_now();
+	/// 	}
+	/// 	// You can do the profiling here knowing it will reach
+	/// 	// Tracy.
+	/// }
+	/// ```
+	pub fn is_connected(&self) -> bool {
+		// SAFETY: self could exist only if startup was issued and
+		// succeeded.
+		unsafe {
+			sys::___tracy_connected() != 0
+		}
+	}
 }
 
-// @Safety :Lifetime
-/// Shutdowns the Tracy profiler.
-///
-/// Any Tracy usage after this is prohibited.
-pub unsafe fn shutdown() {
-	sys::___tracy_shutdown_profiler();
-}
-
-/// Determines if a connection is currently established with the Tracy
-/// server.
-pub fn is_connected() -> bool {
-	unsafe {
-		sys::___tracy_connected() != 0
+impl Drop for TracyClient {
+	fn drop(&mut self) {
+		// SAFETY: self could exist only if startup was issued and
+		// succeeded.
+		unsafe {
+			sys::___tracy_shutdown_profiler();
+		}
+		STARTED.store(false, Ordering::Release);
 	}
 }
 
@@ -69,80 +137,107 @@ pub fn is_connected() -> bool {
 // #[zone(name)]
 // #[zone(color)]
 // #[zone(name, color)]
-// + callstacks?!
+// + callstacks?! + enabled
 // fn foo() {}
 
-// macro_rules in the scopes:
-// - n/a function, name and no color
-// - n/a function, name and color
+/// @Incomplete Document this.
 #[macro_export]
 macro_rules! zone {
-	($name: literal) => {
-		let _loc  = zone_location!(0);
-		let _ctx  = unsafe { sys::___tracy_emit_zone_begin(&_loc.data, 1) };
-		let _zone = Zone { ctx: _ctx, _unsend: PhantomData };
+	($name:literal)                                           => { zone!(_z,   $name, 0,      enabled:true) };
+	($name:literal, $color:expr)                              => { zone!(_z,   $name, $color, enabled:true) };
+	($name:literal,              enabled:$e:expr)             => { zone!(_z,   $name, 0,      enabled:$e)   };
+	($name:literal, $color:expr, enabled:$e:expr)             => { zone!(_z,   $name, $color, enabled:$e)   };
+	($var:ident, $name:literal)                               => { zone!($var, $name, 0,      enabled:true) };
+	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color, enabled:true) };
+	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, 0,      enabled:$e)   };
+	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
+		let _loc  = zone_location!($name, $color);
+		let _ctx  = unsafe { sys::___tracy_emit_zone_begin(&_loc._data, if $e {1} else {0}) };
+		let $var = Zone { ctx: _ctx, _unsend: PhantomData };
 	};
-
-	($name: literal, $color: expr) => {
-		let _loc  = zone_location!($color);
-		let _ctx  = unsafe { sys::___tracy_emit_zone_begin(&_loc.data, 1) };
-		let _zone = Zone { ctx: _ctx, _unsend: PhantomData };
-	};
-
-	(c) => {{
-		let _loc  = zone_location!(0);
-		let _ctx  = unsafe { sys::___tracy_emit_zone_begin(&_loc.data, 1) };
-		Zone { ctx: _ctx, _unsend: PhantomData }
-	}};
 }
 
 /// Profiling zone.
 ///
 /// The profiled zone will end when it is dropped.
-// scoped_zone
-// scoped_zone with const color
 pub struct Zone {
-	ctx: sys::___tracy_c_zone_context,
-
+	ctx:     sys::___tracy_c_zone_context,
 	_unsend: PhantomData<*mut ()>,
-}
-
-// @Incomplete
-// - dynamic name?
-// - dynamic color       - last one wins
-// - dynamic text        - can be multiples (u16::MAX bytes)
-// - dynamic value (u64) - can be multiples
-impl Zone {
-	pub fn value(&self, value: u64) {
-		unsafe {
-			sys::___tracy_emit_zone_value(self.ctx, value);
-		}
-	}
-
-	pub fn text(&self, s: &str) {
-		unsafe {
-			sys::___tracy_emit_zone_text(self.ctx, s.as_ptr().cast(), s.len())
-		}
-	}
 }
 
 impl Drop for Zone {
 	#[inline(always)]
 	fn drop(&mut self) {
-		// SAFETY: We constructed it properly.
+		// SAFETY: The only way to have Zone is to construct it via
+		// zone! macro, which ensures that ctx value is correct.
 		unsafe {
 			sys::___tracy_emit_zone_end(self.ctx);
 		}
 	}
 }
 
-/// A statically allocated location for a zone.
-pub struct ZoneLocation {
-	data: sys::___tracy_source_location_data,
+impl Zone {
+	/// Allows to control the zone color dynamically.
+	///
+	/// This can be called multiple times, however only the latest
+	/// call will have an effect.
+	pub fn color(&self, _value: u32) {
+		todo!()
+	}
+
+	/// Adds a custom numeric value that will be displayed along with
+	/// the zone information. E.g. a loop iteration or size of the
+	/// processed buffer.
+	///
+	/// This method can be called multiple times, all of the passed
+	/// values will be attached to the zone matching the call order.
+	pub fn number(&self, value: u64) {
+		// SAFETY: self always contains a valid `ctx`.
+		unsafe {
+			sys::___tracy_emit_zone_value(self.ctx, value);
+		}
+	}
+
+	/// Adds a custom text string that will be displayed along with
+	/// the zone information. E.g. name of the file you are
+	/// processing.
+	///
+	/// The profiler will allocate a temporary internal buffer and
+	/// copy the passed value there. Hence, this operation involves a
+	/// small run-time cost.
+	///
+	/// This method can be called multiple times, all of the passed
+	/// values will be attached to the zone matching the call order.
+	///
+	/// Be aware that the passed text slice couldn't be larger than 64
+	/// Kb.
+	pub fn text(&self, s: &str) {
+		debug_assert!(s.len() < u16::MAX as usize);
+		// SAFETY: self always contains a valid `ctx`.
+		unsafe {
+			sys::___tracy_emit_zone_text(self.ctx, s.as_ptr().cast(), s.len())
+		}
+	}
 }
 
+// A statically allocated location for a profiling zone.
+// It is an implementation detail and can be changed at any moment.
+#[doc(hidden)]
+#[repr(transparent)]
+pub struct ZoneLocation {
+	_data: sys::___tracy_source_location_data,
+}
+
+// SAFETY: It is fully static and constant.
+unsafe impl Send for ZoneLocation {}
+unsafe impl Sync for ZoneLocation {}
+
+// @Cleanup Make this a part of the zone macro?
+// It is an implementation detail and can be changed at any moment.
+#[doc(hidden)]
+#[macro_export]
 macro_rules! zone_location {
-	($color: expr) => {{
+	($name:literal, $color: expr) => {{
 		struct X;
 		// Tracking issue on the Rust side:
 		// https://github.com/rust-lang/rust/issues/63084
@@ -153,20 +248,17 @@ macro_rules! zone_location {
 		const FUNCTION: &'static [u8] = &details::as_array::<FUNCTION_LEN>(TYPE_NAME);
 
 		static LOC: $crate::ZoneLocation = ZoneLocation {
-			data: sys::___tracy_source_location_data {
-				name:     concat!("TEST",    '\0').as_ptr().cast(),
+			_data: sys::___tracy_source_location_data {
+				name:     concat!($name, '\0').as_ptr().cast(),
 				function: FUNCTION.as_ptr().cast(),
 				file:     concat!(file!(), '\0').as_ptr().cast(),
 				line:     line!(),
 				color:    $color,
-			},
+			}
 		};
 		&LOC
 	}};
 }
-
-unsafe impl Send for ZoneLocation {}
-unsafe impl Sync for ZoneLocation {}
 
 /// Implementation details, do not relay on anything from this module!
 ///
@@ -190,7 +282,6 @@ pub mod details {
 	}
 }
 
-// color is 0xRRGGBB
 // predefined colours ( https://en.wikipedia.org/wiki/X11_color_names)
 // 0 is not black, it is no-color. 1 is close enough.
 
@@ -198,12 +289,6 @@ pub mod details {
 // ^ it is optional though
 
 // discontinuous frames aka frame start/end pair with same name pointer
-
-// zone name can be text+size, but won't be stat aggregated
-
-// optional scopes
-// - compile-time togglable
-// - dynamically togglable
 
 // what's up with locks & C API?
 // what's up with alloc & free? named overloads?
@@ -230,35 +315,66 @@ mod tests {
     use super::*;
 
 	#[test]
+	fn double_lifecycle() {
+		let tracy = TracyClient::start();
+		drop(tracy);
+		let _tracy = TracyClient::start();
+	}
+
+	#[test]
+	#[should_panic]
+	fn double_start_fails() {
+		let _tracy1 = TracyClient::start();
+		let _tracy2 = TracyClient::start();
+	}
+
+	#[test]
 	fn playground() {
-		unsafe { startup(); }
-		while !is_connected() {
+		assert_eq!(TracyClient::is_enabled(), cfg!(feature = "enabled"));
+
+		let tracy = TracyClient::start();
+		while !tracy.is_connected() {
 			std::thread::yield_now();
 		}
+
+		set_thread_name!("main-thread");
 		// @Bug This does not work now.
 		// let x = 42;
 		// set_thread_name!("Worker {}", x);
+		let t = std::thread::spawn(|| {
+			set_thread_name!("worker-thread {}", 1);
+			zone!("work");
+			std::thread::sleep(std::time::Duration::from_secs(1));
+			zone!("inside work");
+			std::thread::sleep(std::time::Duration::from_secs(1));
+		});
+		let d = std::thread::spawn(|| {
+			set_thread_name!("worker-thread {}", 2);
+			zone!("work");
+			std::thread::sleep(std::time::Duration::from_secs(1));
+			zone!("inside work");
+			std::thread::sleep(std::time::Duration::from_secs(1));
+		});
 
 		{
-			let z = zone!(c);
-			z.value(1);
-			z.value(1);
-			z.value(123);
-			z.text("hello, sailor");
-			z.text("cowabunga!");
-			{
-				zone!("1st");
-				std::thread::sleep(std::time::Duration::from_secs(2));
-				zone!("2nd", 0x001230);
-				std::thread::sleep(std::time::Duration::from_secs(1));
-			}
-
-			{
-				zone!("3rd", 0x005015);
-				std::thread::sleep(std::time::Duration::from_secs(2));
-			}
+			zone!("kek");
+			zone!("enabled",  enabled: true);
+			zone!("disabled", enabled: false);
+			zone!("r", 0xFF0000);
+			zone!("g", 0x00FF00);
+			zone!("b", 0x0000FF);
+			std::thread::sleep(std::time::Duration::from_secs(2));
+			zone!(zone, "valueable!");
+			zone.text("i am text 1");
+			zone.text("i am text 2");
+			zone.text("i am text 3");
+			zone.number(u64::MAX);
+			zone.number(31337);
+			zone.number(u64::MIN);
+			std::thread::sleep(std::time::Duration::from_secs(1));
 		}
 
-		unsafe { shutdown(); }
+		t.join().unwrap();
+		d.join().unwrap();
 	}
 }
