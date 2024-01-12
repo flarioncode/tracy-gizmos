@@ -258,17 +258,17 @@ impl Drop for TracyClient {
 /// ```
 #[macro_export]
 macro_rules! zone {
-	(            $name:literal)                               => { zone!(_z,   $name, Color::UNSPECIFIED, enabled:true) };
-	($var:ident, $name:literal)                               => { zone!($var, $name, Color::UNSPECIFIED, enabled:true) };
+	(            $name:literal)                               => { zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:true) };
+	($var:ident, $name:literal)                               => { zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:true) };
 	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color,             enabled:true) };
 	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color,             enabled:true) };
-	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, Color::UNSPECIFIED, enabled:$e)   };
-	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, Color::UNSPECIFIED, enabled:$e)   };
+	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
+	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
 	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color,             enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
 		// SAFETY: This macro ensures that location & context data are correct.
 		let $var = unsafe {
-			details::zone(zone!(@loc $name, $color), if $e {1} else {0})
+			$crate::details::zone(zone!(@loc $name, $color), if $e {1} else {0})
 		};
 	};
 
@@ -282,16 +282,16 @@ macro_rules! zone {
 		const TYPE_NAME: &'static str = std::any::type_name::<X>();
 		// We skip 3 of the '::X' suffix and add 1 for the terminating zero.
 		const FUNCTION_LEN: usize = TYPE_NAME.len() - 3 + 1;
-		const FUNCTION: &'static [u8] = &details::as_array::<FUNCTION_LEN>(TYPE_NAME);
+		const FUNCTION: &'static [u8] = &$crate::details::as_array::<FUNCTION_LEN>(TYPE_NAME);
 
 		// SAFETY: All passed data is created here and is correct.
 		static LOC: $crate::ZoneLocation = unsafe {
-			details::zone_location(
+			$crate::details::zone_location(
 				concat!($name, '\0'),
 				FUNCTION,
 				concat!(file!(), '\0'),
 				line!(),
-				Color::as_u32(&$color),
+				$crate::Color::as_u32(&$color),
 			)
 		};
 		&LOC
