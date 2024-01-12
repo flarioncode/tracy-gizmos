@@ -1,6 +1,17 @@
-# 🧰 tracy gizmos
+# 🧰 tracy-gizmos
 
-`@Incomplete`
+[![Latest Version]][crates.io]
+[![MIT licensed][mit-badge]][mit-url]
+[![Apache licensed][apache-badge]][apache-url]
+[![API](https://docs.rs/tracy-gizmos/badge.svg)][docs.rs]
+
+[Latest Version]: https://img.shields.io/crates/v/tracy-gizmos.svg
+[crates.io]: https://crates.io/crates/tracy-gizmos
+[docs.rs]: https://docs.rs/tracy-gizmos
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: https://github.com/den-mentiei/tracy-gizmos/blob/main/LICENSE-MIT
+[apache-badge]: https://img.shields.io/badge/license-Apache%202.0-blue.svg
+[apache-url]: https://github.com/den-mentiei/tracy-gizmos/blob/main/LICENSE-APACHE
 
 ## Overview
 
@@ -12,7 +23,7 @@
 
 ``` toml
 [dependencies]
-tracy_gizmos = "0.0.1"
+tracy-gizmos = "0.0.1"
 ```
 
 ``` rust
