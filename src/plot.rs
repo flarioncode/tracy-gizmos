@@ -1,52 +1,80 @@
-//! @Incomplete Document this.
-
 use std::ffi::CStr;
 
 use crate::Color;
 
-/// @Incomplete Document this.
+/// Emits a new value for the specific plot.
+///
+/// Supported value types are: `i64`, `f64`, `f32`.
+///
+/// # Examples
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// # let mut draw_calls = 0;
+/// draw_calls += 1;
+/// plot!("Draw calls", draw_calls);
+/// ```
+#[macro_export]
+macro_rules! plot {
+	($name:literal, $value:expr) => {
+		Plot::new(
+			// SAFETY: We null-terminate the string.
+			unsafe {
+				std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
+			},
+		).emit($value);
+	};
+}
+
+/// Create and configures the plot.
+///
+/// It allows to create a plot and configure it.
+/// If you are fine with the plot defaults, you can just use [`plot`].
+///
+/// Value could be emitted to the plot after that.
+///
+/// # Examples
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// let plot_config = PlotConfig { filled: true, ..Default::default() };
+/// let draw_calls  = make_plot!("Draw calls", plot_config);
+/// draw_calls.emit(10);
+/// ```
+#[macro_export]
+macro_rules! make_plot {
+	($name:literal, $config:expr) => {
+		Plot::with_config(
+			// SAFETY: We null-terminate the string.
+			unsafe {
+				std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
+			},
+			$config
+		)
+	};
+}
+
+/// Plotting mechanism.
 ///
 /// Tracy can capture and draw numeric value changes over time. You
 /// may use it to analyze draw call counts, number of performed
 /// queries, high-mark of temp arena memory, etc.
+///
+/// Take a look into [`plot`], [`make_plot`].
+///
+/// # Examples
+///
+/// Unique plot identifier, which can be used to emit values for the
+/// plot.
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct Plot(&'static CStr);
 
 #[doc(hidden)]
-#[macro_export]
-macro_rules! c_str {
-	($s:literal) => {
-		unsafe {
-			std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($s, '\0').as_bytes())
-		}
-	}
-}
-
-/// @Incomplete Document this.
-#[macro_export]
-macro_rules! make_plot {
-	($name:literal, $config:expr) => {
-		Plot::with_config(c_str!($name), $config)
-	};
-}
-
-/// @Incomplete document this.
-#[macro_export]
-macro_rules! plot {
-	($name:literal, $value:expr) => {
-		Plot::new(c_str!($name)).emit($value);
-	};
-}
-
 impl Plot {
-	/// @Incomplete Document this.
 	#[inline(always)]
 	pub fn new(name: &'static CStr) -> Self {
 		Self(name)
 	}
 
-	/// @Incomplete Document this.
 	pub fn with_config(name: &'static CStr, config: PlotConfig) -> Self {
 		// SAFETY: `PlotConfig` ensures values are correct.
 		unsafe {
@@ -63,9 +91,12 @@ impl Plot {
 	}
 }
 
-/// @Incomplete Document this.
+/// The `PlotEmit` trait allows for value emission into a plot.
+///
+/// It is used to get overloading for `emit`s with the supported value
+/// types.
 pub trait PlotEmit<T> {
-	/// @Incomplete Document this.
+	/// Emits a value.
 	fn emit(&self, value: T);
 }
 
@@ -88,23 +119,35 @@ impl_emit!(f64, ___tracy_emit_plot);
 impl_emit!(f32, ___tracy_emit_plot_float);
 impl_emit!(i64, ___tracy_emit_plot_int);
 
-/// @Incomplete Document this.
+/// A plot configuration, which controls the way plot will be
+/// displayed.
 #[derive(Debug, Clone, Copy)]
 pub struct PlotConfig {
-	/// @Incomplete Document this.
+	/// Format controls how plot values are displayed.
 	pub format: PlotFormat,
-	/// @Incomplete Document this.
+	/// Style controls how plot lines are displayed.
 	pub style:  PlotStyle,
-	/// @Incomplete Document this.
+	/// Color of the plot.
 	pub color:  Color,
-	/// @Incomplete Document this.
+	/// If `true`, the area below the plot will be filled with a solid
+	/// color.
 	pub filled: bool,
+}
+
+impl Default for PlotConfig {
+	fn default() -> Self {
+		Self {
+			format: PlotFormat::Number,
+			style:  PlotStyle::Smooth,
+			color:  Color::UNSPECIFIED,
+			filled: false,
+		}
+	}
 }
 
 /// An enum representing the plot values display format.
 ///
-/// Typical usage is to pass this to `plot_config` @Incomplete Finish
-/// this comment to specify the actual usage.
+/// Typical usage is to pass this to [`make_plot`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i32)]
 pub enum PlotFormat {
@@ -125,8 +168,6 @@ pub enum PlotFormat {
 }
 
 /// An enum representing the plot style.
-///
-/// @Incomplete Add typical usage note.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i32)]
 pub enum PlotStyle {

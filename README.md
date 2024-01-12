@@ -12,8 +12,6 @@
 
 ## TODO
 
-- [x] actually use colors
-- [x] plots
 - [ ] messages
 - [ ] examples
 - [ ] tests
@@ -32,6 +30,8 @@
 	- [ ] #[zone(name, color)]
 	- [ ] + callstacks?! + enabled
 	- [ ] fn foo() {}
+- [x] actually use colors
+- [x] plots
 - [x] basic things
 - [x] basic features
 - [x] define `TRACY_NO_FRAME_IMAGE` as it is not interesing for now

@@ -8,9 +8,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 
 mod color;
-pub mod plot;
+mod plot;
 
 pub use color::*;
+pub use plot::*;
 
 /// Sets the current thread's name.
 ///
@@ -146,13 +147,13 @@ impl Drop for TracyClient {
 /// @Incomplete Add some!
 #[macro_export]
 macro_rules! zone {
-	(            $name:literal)                               => { zone!(_z,   $name, Color::NONE, enabled:true) };
-	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color, enabled:true) };
-	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, Color::NONE, enabled:$e)   };
-	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color, enabled:$e)   };
-	($var:ident, $name:literal)                               => { zone!($var, $name, Color::NONE, enabled:true) };
-	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color, enabled:true) };
-	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, Color::NONE, enabled:$e)   };
+	(            $name:literal)                               => { zone!(_z,   $name, Color::UNSPECIFIED, enabled:true) };
+	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color,             enabled:true) };
+	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, Color::UNSPECIFIED, enabled:$e)   };
+	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color,             enabled:$e)   };
+	($var:ident, $name:literal)                               => { zone!($var, $name, Color::UNSPECIFIED, enabled:true) };
+	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color,             enabled:true) };
+	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, Color::UNSPECIFIED, enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
 		let _loc = zone!(@loc $name, $color);
 		// SAFETY: This macro ensures that location & context data are correct.
@@ -306,7 +307,7 @@ pub mod details {
 
 #[cfg(test)]
 mod tests {
-    use super::{*, plot::*};
+    use super::*;
 
 	#[test]
 	fn double_lifecycle() {

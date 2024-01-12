@@ -1,5 +1,3 @@
-//! @Incomplete Document this.
-
 /// Represents a color.
 ///
 /// In some cases, it is possible to provide your own colors to be
@@ -9,29 +7,32 @@
 pub struct Color(u32);
 
 impl Color {
-	/// Color value meaning that no color was set.
-	pub const NONE: Color = Color::from_u32(0);
-
-	/// Constructs a color value from the raw representation.
-	pub const fn from_u32(rgb: u32) -> Self {
-		Self(rgb)
-	}
+	/// Color value meaning that no specific color was set.
+	///
+	/// Tracy will pick an arbitrary color automatically instead.
+	pub const UNSPECIFIED: Color = Color::from_u32(0);
 
 	/// Constructs a color value from separate red, green and blue
 	/// values.
 	///
 	/// Do not use `0, 0, 0` if you want to specify black color, as
 	/// zero is a special value indicating that no color was set
-	/// ([`Color::NONE`]). Instead, use a value close to zero, e.g.
+	/// ([`Color::UNSPECIFIED`]). Instead, use a value close to zero, e.g.
 	/// `0, 0, 1` ([`Color::BLACK`]).
 	#[inline(always)]
 	pub const fn new(r: u8, g: u8, b: u8) -> Self {
 		Self(((r as u32) << 16) | ((g as u32) << 8) | (b as u32))
 	}
 
+	/// Constructs a color value from the raw representation.
+	pub const fn from_u32(rgb: u32) -> Self {
+		Self(rgb)
+	}
+
 	/// Return the underlying representation of the color.
 	///
-	/// It is `0xRRGGBB`, with exception to 0 (aka [`Color::NONE`]).
+	/// It is `0xRRGGBB`, with exception to 0 (aka
+	/// [`Color::UNSPECIFIED`]).
 	#[inline(always)]
 	pub const fn as_u32(&self) -> u32 {
 		self.0
