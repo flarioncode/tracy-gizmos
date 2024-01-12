@@ -26,9 +26,7 @@ impl Color {
 	/// `0, 0, 1` ([`Color::BLACK`]).
 	#[inline(always)]
 	pub const fn new(r: u8, g: u8, b: u8) -> Self {
-		Self(
-			((r as u32) << 16) | ((g as u32) << 8) | (b as u32)
-		)
+		Self(((r as u32) << 16) | ((g as u32) << 8) | (b as u32))
 	}
 
 	/// Return the underlying representation of the color.

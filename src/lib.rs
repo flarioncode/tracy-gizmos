@@ -43,6 +43,7 @@ macro_rules! set_thread_name {
 	};
 }
 
+// @Cleanup This should not exist when we are not enabled.
 static STARTED: AtomicBool = AtomicBool::new(false);
 
 /// Represents a Tracy client.
@@ -134,34 +135,55 @@ impl Drop for TracyClient {
 	}
 }
 
-// auto-function proc-macro attributes:
-// #[zone]
-// #[zone(name)]
-// #[zone(color)]
-// #[zone(name, color)]
-// + callstacks?! + enabled
-// fn foo() {}
-
-/// @Incomplete Document this.
+/// Instruments the current scope with a profiling zone.
+///
+/// # Examples
+///
+/// @Incomplete Add some!
 #[macro_export]
 macro_rules! zone {
-	($name:literal)                                           => { zone!(_z,   $name, 0,      enabled:true) };
-	($name:literal, $color:expr)                              => { zone!(_z,   $name, $color, enabled:true) };
-	($name:literal,              enabled:$e:expr)             => { zone!(_z,   $name, 0,      enabled:$e)   };
-	($name:literal, $color:expr, enabled:$e:expr)             => { zone!(_z,   $name, $color, enabled:$e)   };
-	($var:ident, $name:literal)                               => { zone!($var, $name, 0,      enabled:true) };
+	(            $name:literal)                               => { zone!(_z,   $name, Color::NONE, enabled:true) };
+	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color, enabled:true) };
+	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, Color::NONE, enabled:$e)   };
+	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color, enabled:$e)   };
+	($var:ident, $name:literal)                               => { zone!($var, $name, Color::NONE, enabled:true) };
 	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color, enabled:true) };
-	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, 0,      enabled:$e)   };
+	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, Color::NONE, enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
-		let _loc  = zone_location!($name, $color);
-		let _ctx  = unsafe { sys::___tracy_emit_zone_begin(&_loc._data, if $e {1} else {0}) };
+		let _loc = zone!(@loc $name, $color);
+		let _ctx = unsafe { sys::___tracy_emit_zone_begin(&_loc._data, if $e {1} else {0}) };
 		let $var = Zone { ctx: _ctx, _unsend: PhantomData };
 	};
+
+	(@loc $name:literal, $color: expr) => {{
+		// It is an implementation detail and can be changed at any moment.
+
+		struct X;
+		// Tracking issue on the Rust side:
+		// https://github.com/rust-lang/rust/issues/63084
+		// :UnstableTypeName
+		const TYPE_NAME: &'static str = std::any::type_name::<X>();
+		// We skip 3 of the '::X' suffix and add 1 for the terminating zero.
+		const FUNCTION_LEN: usize = TYPE_NAME.len() - 3 + 1;
+		const FUNCTION: &'static [u8] = &details::as_array::<FUNCTION_LEN>(TYPE_NAME);
+
+		static LOC: $crate::ZoneLocation = ZoneLocation {
+			_data: sys::___tracy_source_location_data {
+				name:     concat!($name, '\0').as_ptr().cast(),
+				function: FUNCTION.as_ptr().cast(),
+				file:     concat!(file!(), '\0').as_ptr().cast(),
+				line:     line!(),
+				color:    Color::as_u32(&$color),
+			}
+		};
+		&LOC
+	}};
 }
 
 /// Profiling zone.
 ///
-/// The profiled zone will end when it is dropped.
+/// It instruments the current scope. Hence, the profiling zone will
+/// end when [`Zone`] is dropped.
 pub struct Zone {
 	ctx:     sys::___tracy_c_zone_context,
 	_unsend: PhantomData<*mut ()>,
@@ -183,8 +205,11 @@ impl Zone {
 	///
 	/// This can be called multiple times, however only the latest
 	/// call will have an effect.
-	pub fn color(&self, _value: u32) {
-		todo!()
+	pub fn color(&self, color: Color) {
+		// SAFETY: self always contains a valid `ctx`.
+		unsafe {
+			sys::___tracy_emit_zone_color(self.ctx, color.as_u32());
+		}
 	}
 
 	/// Adds a custom numeric value that will be displayed along with
@@ -234,34 +259,6 @@ pub struct ZoneLocation {
 unsafe impl Send for ZoneLocation {}
 unsafe impl Sync for ZoneLocation {}
 
-// @Cleanup Make this a part of the zone macro?
-// It is an implementation detail and can be changed at any moment.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! zone_location {
-	($name:literal, $color: expr) => {{
-		struct X;
-		// Tracking issue on the Rust side:
-		// https://github.com/rust-lang/rust/issues/63084
-		// :UnstableTypeName
-		const TYPE_NAME: &'static str = std::any::type_name::<X>();
-		// We skip 3 of the '::X' suffix and add 1 for the terminating zero.
-		const FUNCTION_LEN: usize = TYPE_NAME.len() - 3 + 1;
-		const FUNCTION: &'static [u8] = &details::as_array::<FUNCTION_LEN>(TYPE_NAME);
-
-		static LOC: $crate::ZoneLocation = ZoneLocation {
-			_data: sys::___tracy_source_location_data {
-				name:     concat!($name, '\0').as_ptr().cast(),
-				function: FUNCTION.as_ptr().cast(),
-				file:     concat!(file!(), '\0').as_ptr().cast(),
-				line:     line!(),
-				color:    $color,
-			}
-		};
-		&LOC
-	}};
-}
-
 /// Implementation details, do not relay on anything from this module!
 ///
 /// It is public only due to the usage in public macro bodies.
@@ -283,9 +280,6 @@ pub mod details {
 		buf
 	}
 }
-
-// predefined colours ( https://en.wikipedia.org/wiki/X11_color_names)
-// 0 is not black, it is no-color. 1 is close enough.
 
 // mark_frame at the end vs frame_scope?
 // ^ it is optional though
@@ -362,9 +356,9 @@ mod tests {
 			zone!("kek");
 			zone!("enabled",  enabled: true);
 			zone!("disabled", enabled: false);
-			zone!("r", 0xFF0000);
-			zone!("g", 0x00FF00);
-			zone!("b", 0x0000FF);
+			zone!("r", Color::BISQUE1);
+			zone!("g", Color::BISQUE2);
+			zone!("b", Color::BISQUE3);
 			std::thread::sleep(std::time::Duration::from_secs(2));
 			zone!(zone, "valueable!");
 			zone.text("i am text 1");
