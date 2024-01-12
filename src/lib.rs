@@ -24,7 +24,36 @@ pub use plot::*;
 /// relied upon.
 ///
 /// # Examples
-/// @Incomplete
+///
+/// Ypu can specify a compile-time constant name for a particular
+/// thread, for example, a dedicated I/O thread:
+///
+/// ```no_run
+/// # #![feature(const_type_name)] // :UnstableTypeName
+/// # use tracy_gizmos::*;
+/// # fn loop_and_do_io() {}
+/// std::thread::spawn(|| {
+///     set_thread_name!("I/O processor");
+///     zone!("I/O requests"); // Tracy will show it on this thread track.
+///     loop_and_do_io();
+/// });
+/// ```
+///
+/// You can make a name in runtime, for example, when you have an
+/// arbitrary amount of worker threads:
+///
+/// ```no_run
+/// # #![feature(const_type_name)] // :UnstableTypeName
+/// # use tracy_gizmos::*;
+/// # fn get_next_worker_id() -> u32 { 0 }
+/// # fn loop_and_do_work() {}
+/// let id = get_next_worker_id();
+/// std::thread::spawn(move || {
+///     set_thread_name!("worker-thread {}", id);
+///     zone!("Working"); // Tracy will show it on this thread track.
+///     loop_and_do_work();
+/// });
+/// ```
 #[macro_export]
 macro_rules! set_thread_name {
 	($name: literal) => {
@@ -155,10 +184,10 @@ macro_rules! zone {
 	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color,             enabled:true) };
 	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, Color::UNSPECIFIED, enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
-		let _loc = zone!(@loc $name, $color);
 		// SAFETY: This macro ensures that location & context data are correct.
-		let _ctx = unsafe { sys::___tracy_emit_zone_begin(&_loc._data, if $e {1} else {0}) };
-		let $var = Zone { ctx: _ctx, _unsend: PhantomData };
+		let $var = unsafe {
+			details::zone(zone!(@loc $name, $color), if $e {1} else {0})
+		};
 	};
 
 	(@loc $name:literal, $color: expr) => {{
@@ -173,14 +202,15 @@ macro_rules! zone {
 		const FUNCTION_LEN: usize = TYPE_NAME.len() - 3 + 1;
 		const FUNCTION: &'static [u8] = &details::as_array::<FUNCTION_LEN>(TYPE_NAME);
 
-		static LOC: $crate::ZoneLocation = ZoneLocation {
-			_data: sys::___tracy_source_location_data {
-				name:     concat!($name, '\0').as_ptr().cast(),
-				function: FUNCTION.as_ptr().cast(),
-				file:     concat!(file!(), '\0').as_ptr().cast(),
-				line:     line!(),
-				color:    Color::as_u32(&$color),
-			}
+		// SAFETY: All passed data is created here and is correct.
+		static LOC: $crate::ZoneLocation = unsafe {
+			details::zone_location(
+				concat!($name, '\0'),
+				FUNCTION,
+				concat!(file!(), '\0'),
+				line!(),
+				Color::as_u32(&$color),
+			)
 		};
 		&LOC
 	}};
@@ -253,13 +283,12 @@ impl Zone {
 	}
 }
 
-// A statically allocated location for a profiling zone.
-// It is an implementation detail and can be changed at any moment.
+/// A statically allocated location for a profiling zone.
+///
+/// It is an implementation detail and can be changed at any moment.
 #[doc(hidden)]
 #[repr(transparent)]
-pub struct ZoneLocation {
-	_data: sys::___tracy_source_location_data,
-}
+pub struct ZoneLocation(sys::___tracy_source_location_data);
 
 // SAFETY: It is fully static and constant.
 unsafe impl Send for ZoneLocation {}
@@ -270,8 +299,35 @@ unsafe impl Sync for ZoneLocation {}
 /// It is public only due to the usage in public macro bodies.
 #[doc(hidden)]
 pub mod details {
+	use super::*;
+
 	#[inline(always)]
-	pub unsafe fn set_thread_name(name: *const u8) { // @Cleanup Could be a &CStr instead?
+	pub const unsafe fn zone_location(
+		name: &'static str,
+		func: &'static [u8],
+		file: &'static str,
+		line: u32,
+		color: u32,
+	) -> ZoneLocation {
+		ZoneLocation(
+			sys::___tracy_source_location_data {
+				name:     name.as_ptr().cast(),
+				function: func.as_ptr().cast(),
+				file:     file.as_ptr().cast(),
+				line,
+				color,
+			}
+		)
+	}
+
+	#[inline(always)]
+	pub unsafe fn zone(location: &ZoneLocation, enabled: i32) -> Zone {
+		let ctx = sys::___tracy_emit_zone_begin(&location.0, enabled);
+		Zone { ctx, _unsend: PhantomData }
+	}
+
+	#[inline(always)]
+	pub unsafe fn set_thread_name(name: *const u8) {
 		sys::___tracy_set_thread_name(name.cast());
 	}
 
