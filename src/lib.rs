@@ -8,10 +8,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 
 mod color;
-mod plot;
+pub mod plot;
 
 pub use color::*;
-pub use plot::*;
 
 /// Sets the current thread's name.
 ///
@@ -22,6 +21,9 @@ pub use plot::*;
 /// operating system data if context switch capture is active.
 /// However, this is only a fallback mechanism, and it shouldn't be
 /// relied upon.
+///
+/// # Examples
+/// @Incomplete
 #[macro_export]
 macro_rules! set_thread_name {
 	($name: literal) => {
@@ -304,7 +306,7 @@ pub mod details {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{*, plot::*};
 
 	#[test]
 	fn double_lifecycle() {
@@ -351,17 +353,16 @@ mod tests {
 		let p = std::thread::spawn(|| {
 			set_thread_name!("plotter");
 			zone!("plotting", Color::NAVY_BLUE);
-			const P: &'static std::ffi::CStr = unsafe { std::ffi::CStr::from_bytes_with_nul_unchecked("Number of keks\0".as_bytes()) };
 			let pconfig = PlotConfig {
 				format: PlotFormat::Number,
 				style:  PlotStyle::Smooth,
 				color:  Color::PEACH_PUFF1,
 				filled: false,
 			};
-			let p = Plot::with_config(P, pconfig);
+			let p = make_plot!("Number of keks", pconfig);
 			for i in 0..100 {
-				// plot!("i", 100 - i);
 				p.emit(100 - i);
+				plot!("i", i);
 				std::thread::sleep(std::time::Duration::from_millis(30));
 			}
 		});

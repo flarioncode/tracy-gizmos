@@ -9,17 +9,43 @@ use crate::Color;
 /// Tracy can capture and draw numeric value changes over time. You
 /// may use it to analyze draw call counts, number of performed
 /// queries, high-mark of temp arena memory, etc.
+#[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
 pub struct Plot(&'static CStr);
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! c_str {
+	($s:literal) => {
+		unsafe {
+			std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($s, '\0').as_bytes())
+		}
+	}
+}
+
+/// @Incomplete Document this.
+#[macro_export]
+macro_rules! make_plot {
+	($name:literal, $config:expr) => {
+		Plot::with_config(c_str!($name), $config)
+	};
+}
 
 /// @Incomplete document this.
 #[macro_export]
 macro_rules! plot {
 	($name:literal, $value:expr) => {
+		Plot::new(c_str!($name)).emit($value);
 	};
 }
 
 impl Plot {
+	/// @Incomplete Document this.
+	#[inline(always)]
+	pub fn new(name: &'static CStr) -> Self {
+		Self(name)
+	}
+
 	/// @Incomplete Document this.
 	pub fn with_config(name: &'static CStr, config: PlotConfig) -> Self {
 		// SAFETY: `PlotConfig` ensures values are correct.
