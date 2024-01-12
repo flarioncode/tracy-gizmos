@@ -91,14 +91,6 @@ static STARTED: AtomicBool = AtomicBool::new(false);
 pub struct TracyClient(PhantomData<*mut ()>);
 
 impl TracyClient {
-	/// Returns `true` if the profiling is enabled.
-	///
-	/// Result of this is determined during compile-time and will
-	/// never change after that.
-	pub const fn is_enabled() -> bool {
-		cfg!(feature = "enabled")
-	}
-
 	/// Initializes the Tracy profiler.
 	///
 	/// Must be called *before* any other Tracy usage.
@@ -471,8 +463,6 @@ mod tests {
 
 	#[test]
 	fn playground() {
-		assert_eq!(TracyClient::is_enabled(), cfg!(feature = "enabled"));
-
 		let tracy = TracyClient::start();
 		while !tracy.is_connected() {
 			std::thread::yield_now();
