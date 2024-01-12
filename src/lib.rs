@@ -425,24 +425,6 @@ pub mod details {
 	}
 }
 
-// mark_frame at the end vs frame_scope?
-// ^ it is optional though
-
-// discontinuous frames aka frame start/end pair with same name pointer
-
-// what's up with locks & C API?
-// what's up with alloc & free? named overloads?
-// what's up with gfx stuff?
-
-// TracyMessageL gets static
-// TracyMessage(text, size) no terminating zero and can't be larger than 64 Kb. will be copied.
-
-// tracy app info (text, size)
-
-// callstacks! depth is at most 62 could be disabled with TRACY_NO_CALLSTACK, TRACY_NO_CALLSTACK_INLINES
-
-// dbghelp thread-safety
-
 #[cfg(test)]
 mod tests {
     use super::*;
