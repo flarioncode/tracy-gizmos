@@ -13,7 +13,7 @@
 ## TODO
 
 - [x] actually use colors
-- [ ] plots
+- [x] plots
 - [ ] messages
 - [ ] examples
 - [ ] tests

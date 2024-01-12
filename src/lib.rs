@@ -8,8 +8,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 
 mod color;
+mod plot;
 
 pub use color::*;
+pub use plot::*;
 
 /// Sets the current thread's name.
 ///
@@ -151,6 +153,7 @@ macro_rules! zone {
 	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, Color::NONE, enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
 		let _loc = zone!(@loc $name, $color);
+		// SAFETY: This macro ensures that location & context data are correct.
 		let _ctx = unsafe { sys::___tracy_emit_zone_begin(&_loc._data, if $e {1} else {0}) };
 		let $var = Zone { ctx: _ctx, _unsend: PhantomData };
 	};
@@ -265,7 +268,7 @@ unsafe impl Sync for ZoneLocation {}
 #[doc(hidden)]
 pub mod details {
 	#[inline(always)]
-	pub unsafe fn set_thread_name(name: *const u8) { // @Cleanup Could be a &'static CStr instead?
+	pub unsafe fn set_thread_name(name: *const u8) { // @Cleanup Could be a &CStr instead?
 		sys::___tracy_set_thread_name(name.cast());
 	}
 
@@ -289,13 +292,6 @@ pub mod details {
 // what's up with locks & C API?
 // what's up with alloc & free? named overloads?
 // what's up with gfx stuff?
-
-// plot number
-// plot memory sizes
-// plot percentages
-// plot has name, color
-// plot is step or linear
-// default plot setup
 
 // TracyMessageL gets static
 // TracyMessage(text, size) no terminating zero and can't be larger than 64 Kb. will be copied.
@@ -352,6 +348,24 @@ mod tests {
 			std::thread::sleep(std::time::Duration::from_secs(1));
 		});
 
+		let p = std::thread::spawn(|| {
+			set_thread_name!("plotter");
+			zone!("plotting", Color::NAVY_BLUE);
+			const P: &'static std::ffi::CStr = unsafe { std::ffi::CStr::from_bytes_with_nul_unchecked("Number of keks\0".as_bytes()) };
+			let pconfig = PlotConfig {
+				format: PlotFormat::Number,
+				style:  PlotStyle::Smooth,
+				color:  Color::PEACH_PUFF1,
+				filled: false,
+			};
+			let p = Plot::with_config(P, pconfig);
+			for i in 0..100 {
+				// plot!("i", 100 - i);
+				p.emit(100 - i);
+				std::thread::sleep(std::time::Duration::from_millis(30));
+			}
+		});
+
 		{
 			zone!("kek");
 			zone!("enabled",  enabled: true);
@@ -372,5 +386,6 @@ mod tests {
 
 		t.join().unwrap();
 		d.join().unwrap();
+		p.join().unwrap();
 	}
 }
