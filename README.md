@@ -13,7 +13,7 @@
 ## TODO
 
 - [ ] messages
-- [ ] examples
+- [ ] crate examples
 - [ ] tests
 - [ ] `TRACY_NO_CRASH_HANDLER`  exposed as a feature
 - [ ] `TRACY_NO_SYSTEM_TRACING` same
@@ -22,7 +22,6 @@
 - [ ] `TRACY_NO_CODE_TRANSFER`  same
 - [ ] `TRACY_NO_VSYNC_CAPTURE`  same
 - [ ] :Features
-- [ ] gfx things
 - [ ] auto-function proc-macro attributes:
 	- [ ] #[zone]
 	- [ ] #[zone(name)]
@@ -30,6 +29,7 @@
 	- [ ] #[zone(name, color)]
 	- [ ] + callstacks?! + enabled
 	- [ ] fn foo() {}
+- [ ] gfx things
 - [x] actually use colors
 - [x] plots
 - [x] basic things

@@ -171,18 +171,108 @@ impl Drop for TracyClient {
 
 /// Instruments the current scope with a profiling zone.
 ///
+/// A zone represents the lifetime of a special on-stack profiler
+/// variable. Typically, it would exist for the duration of a whole
+/// profiled function scope, but it is also possible to measure time
+/// spent in nested loops or if branches.
+///
+/// A custom name is required for the zone, which allows to identify
+/// it later in the Trace visualization.
+///
+/// This will automatically record source file name, and location.
+///
 /// # Examples
 ///
-/// @Incomplete Add some!
+/// Just adding a profiling zone is as easy as:
+///
+/// ```no_run
+/// # #![feature(const_type_name)] // :UnstableTypeName
+/// # use tracy_gizmos::*;
+/// fn do_stuff() {
+///     zone!("stuff");
+///     // now actually do stuff :-)
+/// }
+/// ```
+///
+/// Optionally, a custom [`Color`] could be assigned for the zone. Note,
+/// that the color value will be constant in the recording.
+///
+/// ```no_run
+/// # #![feature(const_type_name)] // :UnstableTypeName
+/// # use tracy_gizmos::*;
+/// fn do_stuff() {
+///     zone!("stuff", Color::BISQUE);
+///     // now actually do stuff :-)
+/// }
+/// ```
+///
+/// ## Nesting
+///
+/// Multiple active zones can exist and they will be nested in
+/// parent-child relationship automatically by Tracy.
+///
+/// ```no_run
+/// # #![feature(const_type_name)] // :UnstableTypeName
+/// # use tracy_gizmos::*;
+/// # fn work() {}
+/// fn work_cycle(times: usize) {
+///     zone!("doing work");
+///     for _ in 0..times {
+///         zone!("unit of work");
+///         work();
+///     }
+/// }
+/// ```
+///
+/// ## Filtering zones
+///
+/// Zone logging can be disabled on a per-zone basis:
+///
+/// ```no_run
+/// # #![feature(const_type_name)] // :UnstableTypeName
+/// # use tracy_gizmos::*;
+/// const PROFILE_JOBS: bool = false;
+/// zone!("Do Jobs", enabled: PROFILE_JOBS); // no runtime cost.
+/// ```
+///
+/// Note that this parameter may be a run-time expression, which
+/// should evaluate to `bool`, such as a user-controller switch to
+/// enable the profiling of a specific part of the code only when
+/// needed.
+///
+/// ```no_run
+/// # #![feature(const_type_name)] // :UnstableTypeName
+/// # use tracy_gizmos::*;
+/// # fn toggled() -> bool { true }
+/// # let mut do_profiles = false;
+/// if toggled() {
+///    do_profiles = !do_profiles;
+/// }
+///
+/// zone!("Do Jobs", enabled: do_profiles); // runtime cost.
+/// ```
+///
+/// ## Dynamic data
+///
+/// It is possible to have a set of dynamic data attached to the
+/// particular zone. Refer to [`Zone`] for more details.
+///
+/// ```no_run
+/// # #![feature(const_type_name)] // :UnstableTypeName
+/// # use tracy_gizmos::*;
+/// # let file_path = "./main.rs";
+/// zone!(parsing, "Parsing");
+/// parsing.text(file_path);
+/// ```
 #[macro_export]
 macro_rules! zone {
 	(            $name:literal)                               => { zone!(_z,   $name, Color::UNSPECIFIED, enabled:true) };
-	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color,             enabled:true) };
-	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, Color::UNSPECIFIED, enabled:$e)   };
-	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color,             enabled:$e)   };
 	($var:ident, $name:literal)                               => { zone!($var, $name, Color::UNSPECIFIED, enabled:true) };
+	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color,             enabled:true) };
 	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color,             enabled:true) };
+	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, Color::UNSPECIFIED, enabled:$e)   };
 	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, Color::UNSPECIFIED, enabled:$e)   };
+	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color,             enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
 		// SAFETY: This macro ensures that location & context data are correct.
 		let $var = unsafe {
@@ -389,9 +479,6 @@ mod tests {
 		}
 
 		set_thread_name!("main-thread");
-		// @Bug This does not work now.
-		// let x = 42;
-		// set_thread_name!("Worker {}", x);
 		let t = std::thread::spawn(|| {
 			set_thread_name!("worker-thread {}", 1);
 			zone!("work");
