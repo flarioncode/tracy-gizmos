@@ -14,7 +14,6 @@
 
 - [x] basic things
 - [x] basic features
-- [ ] gfx things
 - [ ] `TRACY_NO_CRASH_HANDLER` exposed as a feature
 - [ ] define `TRACY_NO_FRAME_IMAGE` as it is not interesing for now
 - [ ] define `TRACY_NO_VERIFY` (verify should be exposed as a feature)
@@ -24,7 +23,8 @@
 - [ ] `TRACY_NO_CODE_TRANSFER` same
 - [ ] `TRACY_NO_VSYNC_CAPTURE` same
 - [ ] :Features
-- [ ] expose colours from `common/TracyColors.hpp` (bindgen try
+- [ ] gfx things
+- [x] expose colours from `common/TracyColors.hpp` (bindgen try
       failed, too complex to setup, just copypasta it)
 
 ## License
