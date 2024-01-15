@@ -146,8 +146,6 @@ impl Default for PlotConfig {
 }
 
 /// An enum representing the plot values display format.
-///
-/// Typical usage is to pass this to [`make_plot`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(i32)]
 pub enum PlotFormat {
