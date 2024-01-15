@@ -117,23 +117,95 @@ macro_rules! set_thread_name {
 	};
 
 	($format:literal, $($args:expr),*) => {
-		$(
-			{
-				let name = format!(concat!($format, '\0'), $args).into_bytes();
-				// SAFETY: We null-terminated the string during formatting.
-				unsafe {
-					let name = std::ffi::CString::from_vec_with_nul_unchecked(name);
-					$crate::details::set_thread_name(name.as_ptr().cast());
-				}
-			}
-		)*
+		let name = format!(concat!($format, '\0'), $($args),*).into_bytes();
+		// SAFETY: We null-terminated the string during formatting.
+		unsafe {
+			let name = std::ffi::CString::from_vec_with_nul_unchecked(name);
+			$crate::details::set_thread_name(name.as_ptr().cast());
+		}
 	};
 }
 
-/// @Incomplete Document this.
+/// Sends a message to Tracy's log.
+///
+/// Fast navigation in alrge data sets and correlating zones with what
+/// was happening in the application may be difficult. To ease these
+/// issues, Tracy provides a message log functionality. You can send
+/// messages (e.g. debug log output) using this macro.
+///
+/// # Examples
+///
+/// Just sending a message is straightforward:
+///
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// message!("App started.");
+/// ```
+///
+/// Optionally, a custom [`Color`] could be assigned to the message.
+///
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// message!(Color::YELLOW, "App failed to find something.");
+/// ```
+///
+/// ## Dynamic messages
+///
+/// It is also possible to use dynamic data as the message text.
+///
+/// The profiler will allocate a temporary internal buffer and copy
+/// the passed value there. Hence, this operation involves a small
+/// run-time cost.
+///
+/// Be aware that the passed text couldn't be larger than 64
+/// Kb.
+///
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// # let i = 0;
+/// # let file_path = "file".to_string();
+/// message!("Trying {}", i);
+/// message!(&file_path);
+/// message!(Color::GREEN, "{} is good!", file_path);
+/// ```
 #[macro_export]
 macro_rules! message {
-	($info:expr) => {
+	($text:literal) => {
+		// SAFETY: We null-terminate the string.
+		unsafe {
+			$crate::details::message(concat!($text, '\0').as_ptr());
+		}
+	};
+
+	($text:expr) => {
+		$crate::details::message_size($text);
+	};
+
+	($format:literal, $($args:expr),*) => {
+		let _text = format!($format, $($args),*);
+		$crate::details::message_size(&_text);
+	};
+
+	($color:expr, $text:literal) => {
+		// SAFETY: We null-terminate the string.
+		unsafe {
+			$crate::details::message_color(
+				concat!($text, '\0').as_ptr(),
+				$color,
+			);
+		}
+	};
+
+	($color:expr, $text:expr) => {
+		$crate::details::message_size_color(
+			$text,
+			$color,
+		);
+	};
+
+	($color:expr, $format:literal, $($args:expr),*) => {
+		let _text = format!($format, $($args),*);
+		$crate::details::message_size_color(&_text, $color);
 	};
 }
 
@@ -246,8 +318,8 @@ impl Drop for TracyClient {
 /// }
 /// ```
 ///
-/// Optionally, a custom [`Color`] could be assigned for the zone. Note,
-/// that the color value will be constant in the recording.
+/// Optionally, a custom [`Color`] could be assigned for to zone.
+/// Note, that the color value will be constant in the recording.
 ///
 /// ```no_run
 /// # #![feature(const_type_name)] // :UnstableTypeName
@@ -499,6 +571,50 @@ pub mod details {
 		sys::___tracy_set_thread_name(name.cast());
 	}
 
+	#[inline(always)]
+	pub unsafe fn message(text: *const u8) {
+		sys::___tracy_emit_messageL(
+			text.cast(),
+			0, // callstack depth, 0 is disabled.
+		);
+	}
+
+	#[inline(always)]
+	pub fn message_size(text: &str) {
+		debug_assert!(text.len() < u16::MAX as usize);
+		// SAFETY: Dynamic non-zero-terminated string is fine.
+		unsafe {
+			sys::___tracy_emit_message(
+				text.as_ptr().cast(),
+				text.len(),
+				0, // callstack depth, 0 is disabled.
+			);
+		}
+	}
+
+	#[inline(always)]
+	pub fn message_size_color(text: &str, color: Color) {
+		debug_assert!(text.len() < u16::MAX as usize);
+		// SAFETY: Dynamic non-zero-terminated string is fine.
+		unsafe {
+			sys::___tracy_emit_messageC(
+				text.as_ptr().cast(),
+				text.len(),
+				color.as_u32(),
+				0, // callstack depth, 0 is disabled.
+			);
+		}
+	}
+
+	#[inline(always)]
+	pub unsafe fn message_color(text: *const u8, color: Color) {
+		sys::___tracy_emit_messageLC(
+			text.cast(),
+			color.as_u32(),
+			0, // callstack depth, 0 is disabled.
+		);
+	}
+
 	pub const fn as_array<const N: usize>(s: &'static str) -> [u8; N] {
 		let bytes   = s.as_bytes();
 		let mut buf = [0; N];
@@ -538,9 +654,13 @@ mod tests {
 
 		app_info("Playground app");
 		app_info("Version is 0.0.1");
+		message!("we started");
 
 		set_thread_name!("main-thread");
 		let t = std::thread::spawn(|| {
+			message!(Color::NAVY, &format!("worker-thread {} started", 1));
+			message!(Color::OLIVE, "fmt {}", 1);
+			message!("worker-thread {} started", 1);
 			set_thread_name!("worker-thread {}", 1);
 			zone!("work");
 			std::thread::sleep(std::time::Duration::from_secs(1));
@@ -548,6 +668,7 @@ mod tests {
 			std::thread::sleep(std::time::Duration::from_secs(1));
 		});
 		let d = std::thread::spawn(|| {
+			message!("worker-thread {} started at {}", 2, "kek");
 			set_thread_name!("worker-thread {}", 2);
 			zone!("work");
 			std::thread::sleep(std::time::Duration::from_secs(1));
@@ -572,6 +693,7 @@ mod tests {
 			}
 		});
 
+		message!("dodo before kek");
 		{
 			zone!("kek");
 			zone!("enabled",  enabled: true);
@@ -590,8 +712,10 @@ mod tests {
 			std::thread::sleep(std::time::Duration::from_secs(1));
 		}
 
+		message!(Color::YELLOW, "waiting threads");
 		t.join().unwrap();
 		d.join().unwrap();
 		p.join().unwrap();
+		message!(Color::GREEN, "threads are done");
 	}
 }

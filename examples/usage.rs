@@ -6,9 +6,10 @@ use std::time::Duration;
 use tracy_gizmos::{
 	TracyClient,
 	Color,
-	zone,
 	set_thread_name,
 	app_info,
+	zone,
+	message,
 };
 
 // @Incomplete Add plots, frames, etc.
@@ -24,11 +25,14 @@ fn main() {
 	app_info(env!("CARGO_PKG_VERSION"));
 	app_info("Yes, it is multiline.");
 
+	message!("Hello, my version is {}", env!("CARGO_PKG_VERSION"));
+
 	zone!("main");
 
 	println!("Connected! Let's do some work...");
 
 	let w1 = thread::spawn(|| {
+		message!(Color::TEAL, "Worker 1 has been started.");
 		set_thread_name!("Worker 1");
 
 		zone!("work1", Color::BISQUE1);
@@ -47,8 +51,10 @@ fn main() {
 		heavy_work2();
 	});
 
+	message!(Color::ORANGE, "Waiting for threads...");
 	w1.join().unwrap();
 	w2.join().unwrap();
+	message!("We are done.");
 }
 
 fn heavy_work1() {
