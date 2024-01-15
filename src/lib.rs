@@ -209,6 +209,108 @@ macro_rules! message {
 	};
 }
 
+/// Marks the completed frame end moment.
+///
+/// Program's execution could happen in frame-sized chunks, e.g. a
+/// rendering or I/O driven loop.
+///
+/// Note, that this is fully optional, as lots of applications do not
+/// even us the concept of a frame.
+///
+/// Each frame starts *immediately* after previous has ended.
+///
+/// Some types of frames are discontinuous by their natures - they are
+/// executed periodically, with a pause between each run. E.g. a
+/// physics processing step in a game loop or an audio or save
+/// callback on a separate thread. Tracy can also track this kind of
+/// frames.
+///
+/// Frame types *must not* be mixed. For each frame set, identified by
+/// an unique name, use ither a continuous or discontinuous frames
+/// only!
+///
+/// # Examples
+///
+/// Here comes all possible and interesting cases of frame marking.
+///
+/// ## Marking frames
+///
+/// As simple as:
+///
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// # fn update() { todo!() }
+/// # fn render() { todo!() }
+/// loop {
+///     update();
+///     render();
+///     frame!();
+/// }
+/// ```
+///
+/// ## Secondary frame sets
+///
+/// It works in the same way as the main frame, but requires a unique
+/// name to identify this frame set:
+///
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// # fn update()      { todo!() }
+/// # fn render()      { todo!() }
+/// # fn update_bots() { todo!() }
+/// let ai = std::thread::spawn(|| {
+///    loop {
+///        update_bots();
+///        frame!("ai");
+///    }
+/// });
+///
+/// loop {
+///     update();
+///     render();
+///     frame!();
+/// }
+/// ```
+///
+/// ## Discontinuous frames
+///
+/// As discontinuous frame doesn't start immediately after previous
+/// has ended, you need to manually mark the frame's scope:
+///
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// fn do_io_request() {
+///     // This declares the `io` variable containing a guard, which
+///     // marks the frame end when dropped.
+///     frame!(io, "IO");
+///
+///     // do the I/O work.
+/// }
+/// ```
+#[macro_export]
+macro_rules! frame {
+	() => {
+		// SAFETY: Null pointer means main frame.
+		unsafe {
+			$crate::details::mark_frame_end(std::ptr::null());
+		}
+	};
+
+	($name:literal) => {
+		// SAFETY: We null-terminate the string.
+		unsafe {
+			$crate::details::mark_frame_end(concat!($name, '\0').as_ptr());
+		}
+	};
+
+	($var:ident, $name:literal) => {
+		// SAFETY: We null-terminate the string.
+		let $var = unsafe {
+			$crate::details::discontinuous_frame(concat!($name, '\0').as_ptr().cast())
+		};
+	};
+}
+
 // @Cleanup This should not exist when we are not enabled.
 static STARTED: AtomicBool = AtomicBool::new(false);
 
@@ -432,6 +534,8 @@ macro_rules! zone {
 
 /// Profiling zone.
 ///
+/// Refer to [`zone!`] for usage howto.
+///
 /// It instruments the current scope. Hence, the profiling zone will
 /// end when [`Zone`] is dropped.
 pub struct Zone {
@@ -507,6 +611,26 @@ pub struct ZoneLocation(sys::___tracy_source_location_data);
 // SAFETY: It is fully static and constant.
 unsafe impl Send for ZoneLocation {}
 unsafe impl Sync for ZoneLocation {}
+
+/// Discontinuous frame.
+///
+/// Refer to [`frame!`] for usage howto.
+///
+/// It instruments the current frame scope. Hence, the discontinuous
+/// frame will be marked as finished when [`Frame`] is dropped.
+pub struct Frame(*const i8);
+
+impl Drop for Frame {
+	#[inline(always)]
+	fn drop(&mut self) {
+		// SAFETY: The only way to have Frame is to construct it via
+		// frame! macro, which ensures that contained pointer is
+		// correct.
+		unsafe {
+			sys::___tracy_emit_frame_mark_end(self.0);
+		}
+	}
+}
 
 /// Tracy can collect additional information about the profiled
 /// application, which will be available in the trace description.
@@ -613,6 +737,17 @@ pub mod details {
 			color.as_u32(),
 			0, // callstack depth, 0 is disabled.
 		);
+	}
+
+	#[inline(always)]
+	pub unsafe fn mark_frame_end(name: *const u8) {
+		sys::___tracy_emit_frame_mark(name.cast());
+	}
+
+	#[inline(always)]
+	pub unsafe fn discontinuous_frame(name: *const i8) -> Frame {
+		sys::___tracy_emit_frame_mark_start(name);
+		Frame(name)
 	}
 
 	pub const fn as_array<const N: usize>(s: &'static str) -> [u8; N] {

@@ -1,12 +1,7 @@
 # TODO
 
+- [ ] make sure enable feature actually works
 - [ ] enable function names only on nightly via `build.rs` and `cargo:rustc-cfg=nightly`
-- [ ] frame! at the end vs Frame+Drop (it is optional!)
-- [ ] discontinuous frames aka frame start/end pair with same name pointer
-- [ ] document everything
-- [ ] what's up with locks & C API
-- [ ] what's up with alloc & free, named overloads
-- [ ] tracy app info (text, size)
 - [ ] callstacks! depth is at most 62 could be disabled with TRACY_NO_CALLSTACK, TRACY_NO_CALLSTACK_INLINES
 - [ ] auto-function proc-macro attributes:
 	- [ ] #[zone]
@@ -14,8 +9,14 @@
 	- [ ] #[zone(color)]
 	- [ ] #[zone(name, color)]
 	- [ ] + callstacks?! + enabled
+- [ ] what's up with locks & C API
+- [ ] what's up with alloc & free, named overloads
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] tracy app info (text, size)
+- [x] frame! at the end vs Frame+Drop (it is optional!)
+- [x] discontinuous frames aka frame start/end pair with same name pointer
+- [x] document everything
 - [x] crate examples
 - [x] formatting only works with one argument
 - [x] TracyMessageL gets static

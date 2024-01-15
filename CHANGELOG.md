@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.1] - 2024-xx-xx
 
-`@Incomplete`
+### Added
+
+- Initial implementation of zones, frames, plots & messages
 
 [unreleased]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.1...HEAD
 [0.0.1]: https://github.com/den-mentiei/tracy-gizmos/releases/tag/v0.0.1
