@@ -3,6 +3,59 @@
 #![warn(missing_docs)]
 
 //! @Incomplete Document this or attach the readme.
+//!
+//! # Optional features
+//!
+//! Tracy client functionality can be controlled pretty granullary.
+//! Refer to the Tracy's manual for more details. A corresponding
+//! define is listed for each feature, which can be used to search the
+//! Tracy's documentation or source code, if needed.
+//!
+//! The following features are available:
+//!
+//! - **`crash-handler`** - enables Tracy's crash handler, which
+//! intercepts application crashes and ensures the remaining profiling
+//! data is sent to the server together with a crash report details.
+//! Influences `TRACY_NO_CRASH_HANDLER`.
+//! - **`system-tracing`** - enables system-level tracing information
+//! collection (assuming that the profiled program was granted the
+//! priveleges needed, e.g. run as root or Administrator). Influences
+//! `TRACY_NO_SYSTEM_TRACING`.
+//! - **`context-switch`** - enables context switch information
+//! collection (assuming having the privelege, as above), which allows
+//! to see when a zone was actually executed or was waiting to be
+//! resumed. Influences `TRACY_NO_CONTEXT_SWITCH`.
+//! - **`sampling`** - enables the callstack sampling to augment
+//! instrumented data (requires privelege escalation on Windows).
+//! Influences `TRACY_NO_SAMPLING`.
+//! - **`callstack-inlines`** - enables the inline frames retrieval in
+//! callstacks, which provides more precies information but is
+//! magnitude slower. Influences `TRACY_NO_CALLSTACK_INLINES`.
+//! - **`hw-counters`** - enables the hardware performance counters
+//! sampling (available only on Linux or WSL): IPC, branch
+//! mispredicts, cache misses. Influences
+//! `TRACY_NO_SAMPLE_RETIREMENT`, `TRACY_NO_SAMPLE_BRANCH` and
+//! `TRACY_NO_SAMPLE_CACHE`.
+//! - **`code-transfer`** - enables the executable code retrieval,
+//! which captures parts of the application code for further analysis
+//! in Tracy. Be *extra careful* when working with non-public code!
+//! Influences `TRACY_NO_CODE_TRANSFER`.
+//! - **`vsync`** - enables the hardware Vsync events capture
+//! (assuming having the privilege), which will be reported as frame
+//! events per monitor. Influences `TRACY_NO_VSYNC_CAPTURE`.
+//! - **`no-exit`** - enables the short-lived application profiling
+//! improvement. When `TRAY_NO_EXIT` environment variable is set to
+//! `1`, profiled application will wait for the server connection to
+//! transfer the data, even if it has already finished executing.
+//! Influences `TRACY_NO_EXIT`.
+//! - **`broadcast`** - enables the local network announcement, so
+//! profiling servers can find the client. Influences
+//! `TRACY_NO_BROADCAST`.
+//! - **`only-localhost`** *(enabled by default)* - restricts Tracy to
+//! only listening on the localhost network interface. Influences
+//! `TRACY_ONLY_LOCALHOST`.
+//! - **`only-ipv4`** - restricts Tracy to only listenting on IPv4
+//! network interfaces. Influences `TRACY_ONLY_IPV4`.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
@@ -303,7 +356,7 @@ macro_rules! zone {
 /// It instruments the current scope. Hence, the profiling zone will
 /// end when [`Zone`] is dropped.
 pub struct Zone {
-	ctx:     sys::___tracy_c_zone_context,
+	ctx:     sys::TracyCZoneCtx,
 	_unsend: PhantomData<*mut ()>,
 }
 

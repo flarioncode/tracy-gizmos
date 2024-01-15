@@ -10,12 +10,26 @@ categories = ["development-tools::profiling", "api-bindings"]
 edition    = "2021"
 
 [dependencies.sys]
-package = "tracy-gizmos-sys"
-path    = "sys"
+package  = "tracy-gizmos-sys"
+path     = "sys"
+optional = true
 
 [workspace]
 members = ["sys"]
 
 [features]
-default = ["enabled"] # @Incomplete Remove this, it is for testing of the initial implementation.
-enabled = []
+# @Incomplete Remove 'enabled', it is for testing of the initial implementation.
+default           = ["enabled", "only-localhost"]
+enabled           = ["dep:sys"]
+crash-handler     = ["sys/crash-handler"]
+system-tracing    = ["sys/system-tracing"]
+context-switch    = ["sys/context-switch"]
+sampling          = ["sys/sampling"]
+callstack-inlines = ["sys/callstack-inlines"]
+hw-counters       = ["sys/hw-counters"]
+code-transfer     = ["sys/code-transfer"]
+vsync             = ["sys/vsync"]
+no-exit           = ["sys/no-exit"]
+broadcast         = ["sys/broadcast"]
+only-localhost    = ["sys/only-localhost"]
+only-ipv4         = ["sys/only-ipv4"]

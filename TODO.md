@@ -10,13 +10,6 @@
 - [ ] what's up with alloc & free, named overloads
 - [ ] tracy app info (text, size)
 - [ ] callstacks! depth is at most 62 could be disabled with TRACY_NO_CALLSTACK, TRACY_NO_CALLSTACK_INLINES
-- [ ] :Features
-	- [ ] `TRACY_NO_CRASH_HANDLER`  exposed as a feature
-	- [ ] `TRACY_NO_SYSTEM_TRACING` same
-	- [ ] `TRACY_NO_CONTEXT_SWITCH` same
-	- [ ] `TRACY_NO_SAMPLING`       same
-	- [ ] `TRACY_NO_CODE_TRANSFER`  same
-	- [ ] `TRACY_NO_VSYNC_CAPTURE`  same
 - [ ] auto-function proc-macro attributes:
 	- [ ] #[zone]
 	- [ ] #[zone(name)]
@@ -25,6 +18,13 @@
 	- [ ] + callstacks?! + enabled
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] :Features
+	- [x] `TRACY_NO_CRASH_HANDLER`  exposed as a feature
+	- [x] `TRACY_NO_SYSTEM_TRACING` same
+	- [x] `TRACY_NO_CONTEXT_SWITCH` same
+	- [x] `TRACY_NO_SAMPLING`       same
+	- [x] `TRACY_NO_CODE_TRANSFER`  same
+	- [x] `TRACY_NO_VSYNC_CAPTURE`  same
 - [x] actually use colors
 - [x] plots
 - [x] basic things

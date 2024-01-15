@@ -39,8 +39,6 @@ impl Color {
 	}
 }
 
-// @Incomplete /// Available when `colors` feature is enabled.
-// #[cfg(any(feature = "colors", doc))]
 impl Color {
     /// <span style="background-color: #fffafa; border: 0.2px solid black; display: inline-block; width: 256px;">&nbsp;</span>
     pub const SNOW: Color                   = Color::from_u32(0xfffafa);

@@ -150,19 +150,19 @@ impl Default for PlotConfig {
 #[repr(i32)]
 pub enum PlotFormat {
 	/// Values will be displayed as plain numbers.
-	Number = 0,
+	Number = sys::TracyPlotFormatNumber,
 	/// Treats the values as memory sizes.
 	///
 	/// Tracy will display kilobytes, megabytes, etc.
-	Memory = 1,
+	Memory = sys::TracyPlotFormatMemory,
 	/// Values will be displayed as percentage.
 	///
 	/// With a value of `100` being equal to 100%.
-	Percentage = 2,
+	Percentage = sys::TracyPlotFormatPercentage,
 	/// Values will be displayed as watts.
 	///
 	/// E.g. `5` will be displayed as `5 W`.
-	Watts = 3,
+	Watts = sys::TracyPlotFormatWatt,
 }
 
 /// An enum representing the plot style.

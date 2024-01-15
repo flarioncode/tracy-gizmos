@@ -7,6 +7,8 @@ fn main() {
 	);
 	tracy.push("tracy");
 
+	let defines = defines_from_features();
+
 	#[cfg(feature = "bindgen")]
 	{
 		let mut out_path = PathBuf::from(
@@ -23,7 +25,11 @@ fn main() {
 				"-DTRACY_NO_FRAME_IMAGE",
 				"-DTRACY_NO_VERIFY",
 			])
+			.clang_args(defines.iter().map(|s| format!("-D{}", s)))
 			.allowlist_item("^___tracy.*")
+			.allowlist_item("TracyPlot.*")
+			.allowlist_item("TracyCZone.*")
+			.prepend_enum_name(false)
 			.must_use_type("TracyCZoneCtx")
 			.explicit_padding(true) // @Speed Re-think if needed.
 			.sort_semantically(true)
@@ -41,19 +47,7 @@ fn main() {
 	// However, it is not that easy on Windows and dealing with
 	// versions might be hairy.
 
-	// @Incomplete Expose Tracy features as crate features and setup
-	// defines here accordingly. :Features
-
 	// @Incomplete Link dependencies?
-
-	// @Speed Should we actually "trust" Tracy and disable asserts for
-	// all builds just for the sake of dev builds performance, which
-	// is already important and is even more important with any
-	// profiling overhead involved.
-	let debug = match env::var("PROFILE").as_deref() {
-		Ok("release") => "NDEBUG",
-		_             => "DEBUG",
-	};
 
 	let mut builder = cc::Build::new();
 	builder
@@ -66,7 +60,60 @@ fn main() {
 		.define("TRACY_DELAYED_INIT",    None)
 		.define("TRACY_NO_FRAME_IMAGE",  None)
 		.define("TRACY_NO_VERIFY",       None)
-		.define(debug, None)
-		.opt_level(3) // We always optimize as it is important for dev builds, too.
+		.define("NDEBUG",                None)
+		.opt_level(3); // We always optimize as it is important for dev builds, too.
+
+	for define in defines {
+		builder.define(define, None);
+	}
+
+	builder
 		.compile("tracy-client")
+}
+
+fn defines_from_features() -> Vec<&'static str> {
+	let mut defines = Vec::new();
+	if !is_set("CARGO_FEATURE_CRASH_HANDLER") {
+		defines.push("TRACY_NO_CRASH_HANDLER");
+	}
+	if !is_set("CARGO_FEATURE_SYSTEM_TRACING") {
+		defines.push("TRACY_NO_SYSTEM_TRACING");
+	}
+	if !is_set("CARGO_FEATURE_CONTEXT_SWITCH") {
+		defines.push("TRACY_NO_CONTEXT_SWITCH");
+	}
+	if !is_set("CARGO_FEATURE_SAMPLING") {
+		defines.push("TRACY_NO_SAMPLING");
+	}
+	if !is_set("CARGO_FEATURE_CALLSTACK_INLINES") {
+		defines.push("TRACY_NO_CALLSTACK_INLINES");
+	}
+	if !is_set("CARGO_FEATURE_HW_COUNTERS") {
+		defines.push("TRACY_NO_SAMPLE_RETIREMENT");
+		defines.push("TRACY_NO_SAMPLE_BRANCH");
+		defines.push("TRACY_NO_SAMPLE_CACHE");
+	}
+	if !is_set("CARGO_FEATURE_CODE_TRANSFER") {
+		defines.push("TRACY_NO_CODE_TRANSFER");
+	}
+	if !is_set("CARGO_FEATURE_VSYNC") {
+		defines.push("TRACY_NO_VSYNC_CAPTURE");
+	}
+	if is_set("CARGO_FEATURE_NO_EXIT") {
+		defines.push("TRACY_NO_EXIT");
+	}
+	if !is_set("CARGO_FEATURE_BROADCAST") {
+		defines.push("TRACY_NO_BROADCAST");
+	}
+	if is_set("CARGO_FEATURE_ONLY_LOCALHOST") {
+		defines.push("TRACY_ONLY_LOCALHOST");
+	}
+	if is_set("CARGO_FEATURE_ONLY_IPV4") {
+		defines.push("TRACY_ONLY_IPV4");
+	}
+	defines
+}
+
+fn is_set(key: &str) -> bool {
+	env::var_os(key).is_some()
 }

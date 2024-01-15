@@ -6,7 +6,20 @@ license    = "MIT OR Apache-2.0"
 repository = "https://github.com/den-mentiei/tracy-gizmos"
 edition    = "2021"
 
-[dependencies]
+[features]
+default           = []
+crash-handler     = []
+system-tracing    = []
+context-switch    = []
+sampling          = []
+callstack-inlines = []
+hw-counters       = []
+code-transfer     = []
+vsync             = []
+no-exit           = []
+broadcast         = []
+only-localhost    = []
+only-ipv4         = []
 
 [build-dependencies]
 cc      = "1.0"
