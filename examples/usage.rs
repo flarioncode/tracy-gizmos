@@ -3,7 +3,13 @@
 use std::thread::{self, sleep};
 use std::time::Duration;
 
-use tracy_gizmos::{TracyClient, zone, set_thread_name, Color};
+use tracy_gizmos::{
+	TracyClient,
+	Color,
+	zone,
+	set_thread_name,
+	app_info,
+};
 
 // @Incomplete Add plots, frames, etc.
 
@@ -13,6 +19,10 @@ fn main() {
 	while !tracy.is_connected() {
 		std::thread::yield_now();
 	}
+
+	app_info("tracy-gizmo usage example");
+	app_info(env!("CARGO_PKG_VERSION"));
+	app_info("Yes, it is multiline.");
 
 	zone!("main");
 

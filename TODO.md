@@ -1,11 +1,11 @@
 # TODO
 
-- [ ] frame! at the end vs Frame+Drop (it is optional!)
-- [ ] discontinuous frames aka frame start/end pair with same name pointer
-- [ ] crate examples
 - [ ] TracyMessageL gets static
       TracyMessage(text, size) no terminating zero and can't be larger than 64 Kb. will be copied.
-- [ ] tests
+- [ ] frame! at the end vs Frame+Drop (it is optional!)
+- [ ] discontinuous frames aka frame start/end pair with same name pointer
+- [ ] document everything
+- [ ] crate examples
 - [ ] what's up with locks & C API
 - [ ] what's up with alloc & free, named overloads
 - [ ] tracy app info (text, size)
@@ -18,6 +18,7 @@
 	- [ ] + callstacks?! + enabled
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] tests
 - [x] :Features
 	- [x] `TRACY_NO_CRASH_HANDLER`  exposed as a feature
 	- [x] `TRACY_NO_SYSTEM_TRACING` same

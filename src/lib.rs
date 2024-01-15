@@ -109,14 +109,14 @@ pub use plot::*;
 /// ```
 #[macro_export]
 macro_rules! set_thread_name {
-	($name: literal) => {
+	($name:literal) => {
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::set_thread_name(concat!($name, '\0').as_ptr());
 		}
 	};
 
-	($format: literal, $($args:expr),*) => {
+	($format:literal, $($args:expr),*) => {
 		$(
 			{
 				let name = format!(concat!($format, '\0'), $args).into_bytes();
@@ -127,6 +127,13 @@ macro_rules! set_thread_name {
 				}
 			}
 		)*
+	};
+}
+
+/// @Incomplete Document this.
+#[macro_export]
+macro_rules! message {
+	($info:expr) => {
 	};
 }
 
@@ -313,11 +320,11 @@ impl Drop for TracyClient {
 macro_rules! zone {
 	(            $name:literal)                               => { zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:true) };
 	($var:ident, $name:literal)                               => { zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:true) };
-	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color,             enabled:true) };
-	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color,             enabled:true) };
+	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color,                     enabled:true) };
+	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color,                     enabled:true) };
 	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
 	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
-	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color,             enabled:$e)   };
+	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color,                     enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
 		// SAFETY: This macro ensures that location & context data are correct.
 		let $var = unsafe {
@@ -429,6 +436,32 @@ pub struct ZoneLocation(sys::___tracy_source_location_data);
 unsafe impl Send for ZoneLocation {}
 unsafe impl Sync for ZoneLocation {}
 
+/// Tracy can collect additional information about the profiled
+/// application, which will be available in the trace description.
+/// This can include data such as the source repository revision,
+/// crate version, application's environment, etc.
+///
+/// This can be called multiple times. Tracy will accumulate all the
+/// information and display it altogether.
+///
+/// Be aware that the passed text slice couldn't be larger than 64
+/// Kb.
+///
+/// ```no_run
+/// # use tracy_gizmos::*;
+/// app_info("My fancy application");
+/// app_info(env!("CARGO_PKG_VERSION"));
+/// ```
+#[inline(always)]
+pub fn app_info(info: &str) {
+	debug_assert!(info.len() < u16::MAX as usize);
+	// SAFETY: Slice should contain valid data and having no
+	// terminating zero is fine.
+	unsafe {
+		sys::___tracy_emit_message_appinfo(info.as_ptr().cast(), info.len());
+	}
+}
+
 /// Implementation details, do not relay on anything from this module!
 ///
 /// It is public only due to the usage in public macro bodies.
@@ -502,6 +535,9 @@ mod tests {
 		while !tracy.is_connected() {
 			std::thread::yield_now();
 		}
+
+		app_info("Playground app");
+		app_info("Version is 0.0.1");
 
 		set_thread_name!("main-thread");
 		let t = std::thread::spawn(|| {
