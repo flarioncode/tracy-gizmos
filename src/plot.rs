@@ -15,14 +15,15 @@ use crate::Color;
 /// ```
 #[macro_export]
 macro_rules! plot {
-	($name:literal, $value:expr) => {
-		Plot::new(
+	($name:literal, $value:expr) => {{
+		use $crate::PlotEmit;
+		$crate::Plot::new(
 			// SAFETY: We null-terminate the string.
 			unsafe {
 				std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
 			},
 		).emit($value);
-	};
+	}};
 }
 
 /// Create and configures the plot.
@@ -42,7 +43,7 @@ macro_rules! plot {
 #[macro_export]
 macro_rules! make_plot {
 	($name:literal, $config:expr) => {
-		Plot::with_config(
+		$crate::Plot::with_config(
 			// SAFETY: We null-terminate the string.
 			unsafe {
 				std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())

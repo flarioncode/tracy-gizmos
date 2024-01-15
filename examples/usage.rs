@@ -12,8 +12,6 @@ use tracy_gizmos::{
 	message,
 };
 
-// @Incomplete Add plots, frames, etc.
-
 fn main() {
 	println!("Connecting to Tracy...");
 	let tracy = TracyClient::start();

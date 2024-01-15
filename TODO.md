@@ -13,6 +13,7 @@
 - [ ] what's up with alloc & free, named overloads
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] plots example
 - [x] tracy app info (text, size)
 - [x] frame! at the end vs Frame+Drop (it is optional!)
 - [x] discontinuous frames aka frame start/end pair with same name pointer
