@@ -338,11 +338,8 @@ impl TracyClient {
 	/// # Examples
 	///
 	/// ```no_run
-	/// use tracy_gizmos::TracyClient;
-	///
-	/// fn main() {
-	/// 	let tracy = TracyClient::start();
-	/// }
+	/// # use tracy_gizmos::TracyClient;
+	/// let tracy = TracyClient::start();
 	/// ```
 	pub fn start() -> Self {
 		if STARTED.swap(true, Ordering::Acquire) {
@@ -364,16 +361,13 @@ impl TracyClient {
 	/// _before_ doing any profiled work.
 	///
 	/// ```no_run
-	/// use tracy_gizmos::TracyClient;
-	///
-	/// fn main() {
-	/// 	let tracy = TracyClient::start();
-	/// 	while !tracy.is_connected() {
-	/// 		std::thread::yield_now();
-	/// 	}
-	/// 	// You can do the profiling here knowing it will reach
-	/// 	// Tracy.
+	/// # use tracy_gizmos::TracyClient;
+	/// let tracy = TracyClient::start();
+	/// while !tracy.is_connected() {
+	///     std::thread::yield_now();
 	/// }
+	/// // You can do the profiling here knowing it will reach
+	/// // Tracy.
 	/// ```
 	pub fn is_connected(&self) -> bool {
 		// SAFETY: self could exist only if startup was issued and
