@@ -1,4 +1,4 @@
-# sys
+# tracy-gizmos-sys
 
 We maintain a carbon copy of Tracy's public part, so we can build it
 as a static library and also bindgen the low-level bindings based on

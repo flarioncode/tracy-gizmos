@@ -1,16 +1,19 @@
 [package]
-name       = "tracy-gizmos"
-version    = "0.0.1"
-authors    = ["Denys Mentiei <endden@gmail.com>"]
-repository = "https://github.com/den-mentiei/tracy-gizmos"
-license    = "MIT OR Apache-2.0"
-readme     = "README.md"
-keywords   = ["profiler", "performance", "tracy", "api-bindings"]
-categories = ["development-tools::profiling", "api-bindings"]
-edition    = "2021"
+name        = "tracy-gizmos"
+version     = "0.0.1"
+authors     = ["Denys Mentiei <endden@gmail.com>"]
+description = "Bindings for the client library of the Tracy profiler"
+repository  = "https://github.com/den-mentiei/tracy-gizmos"
+license     = "MIT OR Apache-2.0"
+readme      = "README.md"
+keywords    = ["profiler", "performance", "tracy", "api-bindings"]
+categories  = ["development-tools::profiling", "api-bindings"]
+edition     = "2021"
+exclude     = ["TODO.md"]
 
 [dependencies.sys]
 package  = "tracy-gizmos-sys"
+version  = "0.10.0"
 path     = "sys"
 optional = true
 

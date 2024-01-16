@@ -1,10 +1,12 @@
 [package]
-name       = "tracy-gizmos-sys"
-version    = "0.10.0"
-authors    = ["Denys Mentiei <endden@gmail.com>"]
-license    = "MIT OR Apache-2.0"
-repository = "https://github.com/den-mentiei/tracy-gizmos"
-edition    = "2021"
+name        = "tracy-gizmos-sys"
+version     = "0.10.0"
+authors     = ["Denys Mentiei <endden@gmail.com>"]
+description = "Bindings for the Tracy C API"
+license     = "MIT OR Apache-2.0"
+repository  = "https://github.com/den-mentiei/tracy-gizmos"
+edition     = "2021"
+exclude     = ["/target/*"]
 
 [features]
 default           = []
