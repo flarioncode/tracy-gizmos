@@ -40,7 +40,7 @@ fn main() {
 		// When io is dropped at the end of this scope - this
 		// discontinuous frame is marked as finished.
 		message!(Color::ORANGE, "io frame start");
-		frame!(io, "IO");
+		frame!(_io, "IO");
 
 		// Do the I/O work:
 		zone!(streaming, "Streaming");

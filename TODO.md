@@ -1,8 +1,7 @@
 # TODO
 
-- [ ] make sure enable feature actually works
 - [ ] enable function names only on nightly via `build.rs` and `cargo:rustc-cfg=nightly`
-- [ ] callstacks! depth is at most 62 could be disabled with TRACY_NO_CALLSTACK, TRACY_NO_CALLSTACK_INLINES
+- [ ] callstacks! depth is at most 62
 - [ ] auto-function proc-macro attributes:
 	- [ ] #[zone]
 	- [ ] #[zone(name)]
@@ -13,6 +12,7 @@
 - [ ] what's up with alloc & free, named overloads
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] make sure enable feature actually works
 - [x] plots example
 - [x] tracy app info (text, size)
 - [x] frame! at the end vs Frame+Drop (it is optional!)

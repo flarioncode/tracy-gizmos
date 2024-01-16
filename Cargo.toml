@@ -18,9 +18,8 @@ optional = true
 members = ["sys"]
 
 [features]
-# @Incomplete Remove 'enabled', it is for testing of the initial implementation.
-default           = ["enabled", "only-localhost"]
-enabled           = ["dep:sys"]
+default           = []
+enabled           = ["dep:sys", "only-localhost"]
 crash-handler     = ["sys/crash-handler"]
 system-tracing    = ["sys/system-tracing"]
 context-switch    = ["sys/context-switch"]

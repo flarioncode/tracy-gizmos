@@ -26,6 +26,10 @@ macro_rules! plot {
 				},
 			).emit($value);
 		}
+		#[cfg(not(feature = "enabled"))]
+		{
+			_ = $value;
+		}
 	};
 }
 
@@ -70,17 +74,24 @@ macro_rules! make_plot {
 /// plot.
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
-pub struct Plot(&'static CStr);
+pub struct Plot(#[cfg(feature = "enabled")] &'static CStr);
 
 #[doc(hidden)]
 impl Plot {
 	#[inline(always)]
+	#[cfg(feature = "enabled")]
 	pub fn new(name: &'static CStr) -> Self {
 		Self(name)
 	}
+	#[inline(always)]
+	#[cfg(not(feature = "enabled"))]
+	pub fn new(_: &'static CStr) -> Self {
+		Self()
+	}
 
+	#[inline(always)]
+	#[cfg(feature = "enabled")]
 	pub fn with_config(name: &'static CStr, config: PlotConfig) -> Self {
-		#[cfg(feature = "enabled")]
 		// SAFETY: `PlotConfig` ensures values are correct.
 		unsafe {
 			sys::___tracy_emit_plot_config(
@@ -93,6 +104,11 @@ impl Plot {
 		}
 
 		Self(name)
+	}
+	#[inline(always)]
+	#[cfg(not(feature = "enabled"))]
+	pub fn with_config(_: &'static CStr, _: PlotConfig) -> Self {
+		Self()
 	}
 }
 
@@ -177,20 +193,19 @@ pub enum PlotFormat {
 }
 
 #[cfg(feature = "enabled")]
-macro_rules! const_assert {
-	($x:expr $(,)?) => {
-		const _: [(); 0 - !{ const ASSERT: bool = $x; ASSERT } as usize] = [];
-	};
-}
+mod check_plot_format {
+	macro_rules! const_assert {
+		($x:expr $(,)?) => {
+			const _: [(); 0 - !{ const ASSERT: bool = $x; ASSERT } as usize] = [];
+		};
+	}
 
-#[cfg(feature = "enabled")]
-const_assert!(PlotFormat::Number     == sys::TracyPlotFormatNumber);
-#[cfg(feature = "enabled")]
-const_assert!(PlotFormat::Memory     == sys::TracyPlotFormatMemory);
-#[cfg(feature = "enabled")]
-const_assert!(PlotFormat::Percentage == sys::TracyPlotFormatPercentage);
-#[cfg(feature = "enabled")]
-const_assert!(PlotFormat::Watts      == sys::TracyPlotFormatWatt);
+	use super::PlotFormat::*;
+	const_assert!(Number     as i32 == sys::TracyPlotFormatNumber);
+	const_assert!(Memory     as i32 == sys::TracyPlotFormatMemory);
+	const_assert!(Percentage as i32 == sys::TracyPlotFormatPercentage);
+	const_assert!(Watts      as i32 == sys::TracyPlotFormatWatt);
+}
 
 /// An enum representing the plot style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

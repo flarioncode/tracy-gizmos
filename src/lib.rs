@@ -1,6 +1,7 @@
 // @Cleanup Feature-gate this for the nightly enjoyers?
 #![feature(const_type_name)] // :UnstableTypeName
-#![warn(missing_docs)]
+
+#![cfg_attr(feature = "enabled", deny(missing_docs))]
 
 //! @Incomplete Document this or attach the readme.
 //!
@@ -44,7 +45,7 @@
 //! (assuming having the privilege), which will be reported as frame
 //! events per monitor. Influences `TRACY_NO_VSYNC_CAPTURE`.
 //! - **`no-exit`** - enables the short-lived application profiling
-//! improvement. When `TRAY_NO_EXIT` environment variable is set to
+//! improvement. When `TRACY_NO_EXIT` environment variable is set to
 //! `1`, profiled application will wait for the server connection to
 //! transfer the data, even if it has already finished executing.
 //! Influences `TRACY_NO_EXIT`.
@@ -57,6 +58,7 @@
 //! - **`only-ipv4`** - restricts Tracy to only listenting on IPv4
 //! network interfaces. Influences `TRACY_ONLY_IPV4`.
 
+#[cfg(feature = "enabled")]
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 
@@ -110,6 +112,7 @@ pub use plot::*;
 #[macro_export]
 macro_rules! set_thread_name {
 	($name:literal) => {
+		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::set_thread_name(concat!($name, '\0').as_ptr());
@@ -117,11 +120,14 @@ macro_rules! set_thread_name {
 	};
 
 	($format:literal, $($args:expr),*) => {
-		let name = format!(concat!($format, '\0'), $($args),*).into_bytes();
-		// SAFETY: We null-terminated the string during formatting.
-		unsafe {
-			let name = std::ffi::CString::from_vec_with_nul_unchecked(name);
-			$crate::details::set_thread_name(name.as_ptr().cast());
+		#[cfg(feature = "enabled")]
+		{
+			let name = format!(concat!($format, '\0'), $($args),*).into_bytes();
+			// SAFETY: We null-terminated the string during formatting.
+			unsafe {
+				let name = std::ffi::CString::from_vec_with_nul_unchecked(name);
+				$crate::details::set_thread_name(name.as_ptr().cast());
+			}
 		}
 	};
 }
@@ -171,6 +177,7 @@ macro_rules! set_thread_name {
 #[macro_export]
 macro_rules! message {
 	($text:literal) => {
+		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::message(concat!($text, '\0').as_ptr());
@@ -178,15 +185,20 @@ macro_rules! message {
 	};
 
 	($text:expr) => {
+		#[cfg(feature = "enabled")]
 		$crate::details::message_size($text);
 	};
 
 	($format:literal, $($args:expr),*) => {
-		let _text = format!($format, $($args),*);
-		$crate::details::message_size(&_text);
+		#[cfg(feature = "enabled")]
+		{
+			let _text = format!($format, $($args),*);
+			$crate::details::message_size(&_text);
+		}
 	};
 
 	($color:expr, $text:literal) => {
+		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::message_color(
@@ -197,6 +209,7 @@ macro_rules! message {
 	};
 
 	($color:expr, $text:expr) => {
+		#[cfg(feature = "enabled")]
 		$crate::details::message_size_color(
 			$text,
 			$color,
@@ -204,8 +217,11 @@ macro_rules! message {
 	};
 
 	($color:expr, $format:literal, $($args:expr),*) => {
-		let _text = format!($format, $($args),*);
-		$crate::details::message_size_color(&_text, $color);
+		#[cfg(feature = "enabled")]
+		{
+			let _text = format!($format, $($args),*);
+			$crate::details::message_size_color(&_text, $color);
+		}
 	};
 }
 
@@ -290,6 +306,7 @@ macro_rules! message {
 #[macro_export]
 macro_rules! frame {
 	() => {
+		#[cfg(feature = "enabled")]
 		// SAFETY: Null pointer means main frame.
 		unsafe {
 			$crate::details::mark_frame_end(std::ptr::null());
@@ -297,6 +314,7 @@ macro_rules! frame {
 	};
 
 	($name:literal) => {
+		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::mark_frame_end(concat!($name, '\0').as_ptr());
@@ -304,14 +322,17 @@ macro_rules! frame {
 	};
 
 	($var:ident, $name:literal) => {
+		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		let $var = unsafe {
 			$crate::details::discontinuous_frame(concat!($name, '\0').as_ptr().cast())
 		};
+		#[cfg(not(feature = "enabled"))]
+		let $var = ();
 	};
 }
 
-// @Cleanup This should not exist when we are not enabled.
+#[cfg(feature = "enabled")]
 static STARTED: AtomicBool = AtomicBool::new(false);
 
 /// Represents a Tracy client.
@@ -342,12 +363,15 @@ impl TracyClient {
 	/// let tracy = TracyClient::start();
 	/// ```
 	pub fn start() -> Self {
-		if STARTED.swap(true, Ordering::Acquire) {
-			panic!("Tracy client has been started already.");
-		}
-		// SAFETY: Check above ensures this happens once.
-		unsafe {
-			sys::___tracy_startup_profiler();
+		#[cfg(feature = "enabled")]
+		{
+			if STARTED.swap(true, Ordering::Acquire) {
+				panic!("Tracy client has been started already.");
+			}
+			// SAFETY: Check above ensures this happens once.
+			unsafe {
+				sys::___tracy_startup_profiler();
+			}
 		}
 		Self(PhantomData)
 	}
@@ -369,6 +393,7 @@ impl TracyClient {
 	/// // You can do the profiling here knowing it will reach
 	/// // Tracy.
 	/// ```
+	#[cfg(feature = "enabled")]
 	pub fn is_connected(&self) -> bool {
 		// SAFETY: self could exist only if startup was issued and
 		// succeeded.
@@ -376,8 +401,11 @@ impl TracyClient {
 			sys::___tracy_connected() != 0
 		}
 	}
+	#[cfg(not(feature = "enabled"))]
+	pub const fn is_connected(&self) -> bool { true }
 }
 
+#[cfg(feature = "enabled")]
 impl Drop for TracyClient {
 	fn drop(&mut self) {
 		// SAFETY: self could exist only if startup was issued and
@@ -494,36 +522,47 @@ macro_rules! zone {
 	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
 	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color,                     enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
+		#[cfg(feature = "enabled")]
 		// SAFETY: This macro ensures that location & context data are correct.
 		let $var = unsafe {
 			$crate::details::zone(zone!(@loc $name, $color), if $e {1} else {0})
 		};
+
+		#[cfg(not(feature = "enabled"))]
+		let $var = {
+			// Silences unused import warning.
+			_ = $color;
+			$crate::Zone::new()
+		};
 	};
 
-	(@loc $name:literal, $color: expr) => {{
-		// It is an implementation detail and can be changed at any moment.
+	(@loc $name:literal, $color: expr) => {
+		#[cfg(feature = "enabled")]
+		{
+			// It is an implementation detail and can be changed at any moment.
 
-		struct X;
-		// Tracking issue on the Rust side:
-		// https://github.com/rust-lang/rust/issues/63084
-		// :UnstableTypeName
-		const TYPE_NAME: &'static str = std::any::type_name::<X>();
-		// We skip 3 of the '::X' suffix and add 1 for the terminating zero.
-		const FUNCTION_LEN: usize = TYPE_NAME.len() - 3 + 1;
-		const FUNCTION: &'static [u8] = &$crate::details::as_array::<FUNCTION_LEN>(TYPE_NAME);
+			struct X;
+			// Tracking issue on the Rust side:
+			// https://github.com/rust-lang/rust/issues/63084
+			// :UnstableTypeName
+			const TYPE_NAME: &'static str = std::any::type_name::<X>();
+			// We skip 3 of the '::X' suffix and add 1 for the terminating zero.
+			const FUNCTION_LEN: usize = TYPE_NAME.len() - 3 + 1;
+			const FUNCTION: &'static [u8] = &$crate::details::as_array::<FUNCTION_LEN>(TYPE_NAME);
 
-		// SAFETY: All passed data is created here and is correct.
-		static LOC: $crate::ZoneLocation = unsafe {
-			$crate::details::zone_location(
-				concat!($name, '\0'),
-				FUNCTION,
-				concat!(file!(), '\0'),
-				line!(),
-				$crate::Color::as_u32(&$color),
-			)
-		};
-		&LOC
-	}};
+			// SAFETY: All passed data is created here and is correct.
+			static LOC: $crate::ZoneLocation = unsafe {
+				$crate::details::zone_location(
+					concat!($name, '\0'),
+					FUNCTION,
+					concat!(file!(), '\0'),
+					line!(),
+					$crate::Color::as_u32(&$color),
+				)
+			};
+			&LOC
+		}
+	};
 }
 
 /// Profiling zone.
@@ -533,10 +572,12 @@ macro_rules! zone {
 /// It instruments the current scope. Hence, the profiling zone will
 /// end when [`Zone`] is dropped.
 pub struct Zone {
+	#[cfg(feature = "enabled")]
 	ctx:     sys::TracyCZoneCtx,
 	_unsend: PhantomData<*mut ()>,
 }
 
+#[cfg(feature = "enabled")]
 impl Drop for Zone {
 	#[inline(always)]
 	fn drop(&mut self) {
@@ -549,16 +590,24 @@ impl Drop for Zone {
 }
 
 impl Zone {
+	#[cfg(not(feature = "enabled"))]
+	pub fn new() -> Self {
+		Self { _unsend: PhantomData }
+	}
+
 	/// Allows to control the zone color dynamically.
 	///
 	/// This can be called multiple times, however only the latest
 	/// call will have an effect.
+	#[cfg(feature = "enabled")]
 	pub fn color(&self, color: Color) {
 		// SAFETY: self always contains a valid `ctx`.
 		unsafe {
 			sys::___tracy_emit_zone_color(self.ctx, color.as_u32());
 		}
 	}
+	#[cfg(not(feature = "enabled"))]
+	pub fn color(&self, _: Color) {}
 
 	/// Adds a custom numeric value that will be displayed along with
 	/// the zone information. E.g. a loop iteration or size of the
@@ -566,12 +615,15 @@ impl Zone {
 	///
 	/// This method can be called multiple times, all of the passed
 	/// values will be attached to the zone matching the call order.
+	#[cfg(feature = "enabled")]
 	pub fn number(&self, value: u64) {
 		// SAFETY: self always contains a valid `ctx`.
 		unsafe {
 			sys::___tracy_emit_zone_value(self.ctx, value);
 		}
 	}
+	#[cfg(not(feature = "enabled"))]
+	pub fn number(&self, _: u64) {}
 
 	/// Adds a custom text string that will be displayed along with
 	/// the zone information. E.g. name of the file you are
@@ -586,6 +638,7 @@ impl Zone {
 	///
 	/// Be aware that the passed text slice couldn't be larger than 64
 	/// Kb.
+	#[cfg(feature = "enabled")]
 	pub fn text(&self, s: &str) {
 		debug_assert!(s.len() < u16::MAX as usize);
 		// SAFETY: self always contains a valid `ctx`.
@@ -593,6 +646,8 @@ impl Zone {
 			sys::___tracy_emit_zone_text(self.ctx, s.as_ptr().cast(), s.len())
 		}
 	}
+	#[cfg(not(feature = "enabled"))]
+	pub fn text(&self, _: &str) {}
 }
 
 /// A statically allocated location for a profiling zone.
@@ -600,7 +655,7 @@ impl Zone {
 /// It is an implementation detail and can be changed at any moment.
 #[doc(hidden)]
 #[repr(transparent)]
-pub struct ZoneLocation(sys::___tracy_source_location_data);
+pub struct ZoneLocation(#[cfg(feature = "enabled")] sys::___tracy_source_location_data);
 
 // SAFETY: It is fully static and constant.
 unsafe impl Send for ZoneLocation {}
@@ -612,8 +667,9 @@ unsafe impl Sync for ZoneLocation {}
 ///
 /// It instruments the current frame scope. Hence, the discontinuous
 /// frame will be marked as finished when [`Frame`] is dropped.
-pub struct Frame(*const i8);
+pub struct Frame(#[cfg(feature = "enabled")] *const i8);
 
+#[cfg(feature = "enabled")]
 impl Drop for Frame {
 	#[inline(always)]
 	fn drop(&mut self) {
@@ -642,6 +698,7 @@ impl Drop for Frame {
 /// app_info("My fancy application");
 /// app_info(env!("CARGO_PKG_VERSION"));
 /// ```
+#[cfg(feature = "enabled")]
 #[inline(always)]
 pub fn app_info(info: &str) {
 	debug_assert!(info.len() < u16::MAX as usize);
@@ -651,11 +708,14 @@ pub fn app_info(info: &str) {
 		sys::___tracy_emit_message_appinfo(info.as_ptr().cast(), info.len());
 	}
 }
+#[cfg(not(feature = "enabled"))]
+pub fn app_info(_: &str) {}
 
 /// Implementation details, do not relay on anything from this module!
 ///
 /// It is public only due to the usage in public macro bodies.
 #[doc(hidden)]
+#[cfg(feature = "enabled")]
 pub mod details {
 	use super::*;
 
