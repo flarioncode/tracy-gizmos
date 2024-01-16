@@ -15,19 +15,28 @@
 
 ## Overview
 
-`@Incomplete`
+Bindings for the client library of the
+[Tracy](https://github.com/wolfpld/tracy) profiler.
+
+Allows to easily instrument your code and profile it with Tracy.
 
 ## How to use
 
-`@Incomplete`
+Add `tracy-gizmos` to your `Cargo.toml`:
 
-``` toml
+```toml
 [dependencies]
-tracy-gizmos = "0.0.1"
+tracy-gizmos = { version = "0.0.1", features = ["enabled"] }
 ```
 
-``` rust
+The usage is pretty straight-forward (for more details refer to the docs):
+
+```rust
+use tracy_gizmos::*;
 fn main() {
+	let tracy = TracyClient::start();
+	zone!("main");
+	work();
 }
 ```
 

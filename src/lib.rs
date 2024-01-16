@@ -1,11 +1,47 @@
-// @Cleanup Feature-gate this for the nightly enjoyers?
-#![feature(const_type_name)] // :UnstableTypeName
-
 #![cfg_attr(feature = "enabled", deny(missing_docs))]
+#![cfg_attr(
+	feature = "unstable-function-names",
+	allow(incomplete_features),
+	feature(const_type_name),
+	feature(generic_const_exprs),
+)]
 
-//! @Incomplete Document this or attach the readme.
+//! Bindings for the client library of the
+//! [Tracy](https://github.com/wolfpld/tracy) profiler.
 //!
-//! # Optional features
+//! Refer to the Tracy manual for details and profiler server usage.
+//!
+//! # How to use
+//!
+//! Add `tracy-gizmos` to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! tracy-gizmos = { version = "0.0.1", features = ["enabled"] }
+//! ```
+//!
+//! Note that instrumentation is *disabled* by default.
+//!
+//! The usage is pretty straight-forward (for more details read the docs):
+//!
+//! ```no_run
+//! # fn work() { todo!() }
+//! use tracy_gizmos::*;
+//! fn main() {
+//!     let tracy = TracyClient::start();
+//!     zone!("main");
+//!     work();
+//! }
+//! ```
+//! # Features
+//!
+//! - **`enabled`** - enables the instrumentation and everything
+//! related to it.
+//! - **`unstable-function-names`** *(nightly only)* -
+//! includes the enclosing function name into every zone without
+//! additional runtime overhead.
+//!
+//! # Tracy features
 //!
 //! Tracy client functionality can be controlled pretty granullary.
 //! Refer to the Tracy's manual for more details. A corresponding
@@ -84,7 +120,6 @@ pub use plot::*;
 /// thread, for example, a dedicated I/O thread:
 ///
 /// ```no_run
-/// # #![feature(const_type_name)] // :UnstableTypeName
 /// # use tracy_gizmos::*;
 /// # fn loop_and_do_io() {}
 /// std::thread::spawn(|| {
@@ -98,7 +133,6 @@ pub use plot::*;
 /// arbitrary amount of worker threads:
 ///
 /// ```no_run
-/// # #![feature(const_type_name)] // :UnstableTypeName
 /// # use tracy_gizmos::*;
 /// # fn get_next_worker_id() -> u32 { 0 }
 /// # fn loop_and_do_work() {}
@@ -434,7 +468,6 @@ impl Drop for TracyClient {
 /// Just adding a profiling zone is as easy as:
 ///
 /// ```no_run
-/// # #![feature(const_type_name)] // :UnstableTypeName
 /// # use tracy_gizmos::*;
 /// fn do_stuff() {
 ///     zone!("stuff");
@@ -446,7 +479,6 @@ impl Drop for TracyClient {
 /// Note, that the color value will be constant in the recording.
 ///
 /// ```no_run
-/// # #![feature(const_type_name)] // :UnstableTypeName
 /// # use tracy_gizmos::*;
 /// fn do_stuff() {
 ///     zone!("stuff", Color::BISQUE);
@@ -460,7 +492,6 @@ impl Drop for TracyClient {
 /// parent-child relationship automatically by Tracy.
 ///
 /// ```no_run
-/// # #![feature(const_type_name)] // :UnstableTypeName
 /// # use tracy_gizmos::*;
 /// # fn work() {}
 /// fn work_cycle(times: usize) {
@@ -477,7 +508,6 @@ impl Drop for TracyClient {
 /// Zone logging can be disabled on a per-zone basis:
 ///
 /// ```no_run
-/// # #![feature(const_type_name)] // :UnstableTypeName
 /// # use tracy_gizmos::*;
 /// const PROFILE_JOBS: bool = false;
 /// zone!("Do Jobs", enabled: PROFILE_JOBS); // no runtime cost.
@@ -489,7 +519,6 @@ impl Drop for TracyClient {
 /// needed.
 ///
 /// ```no_run
-/// # #![feature(const_type_name)] // :UnstableTypeName
 /// # use tracy_gizmos::*;
 /// # fn toggled() -> bool { true }
 /// # let mut do_profiles = false;
@@ -506,7 +535,6 @@ impl Drop for TracyClient {
 /// particular zone. Refer to [`Zone`] for more details.
 ///
 /// ```no_run
-/// # #![feature(const_type_name)] // :UnstableTypeName
 /// # use tracy_gizmos::*;
 /// # let file_path = "./main.rs";
 /// zone!(parsing, "Parsing");
@@ -539,16 +567,17 @@ macro_rules! zone {
 	(@loc $name:literal, $color: expr) => {
 		#[cfg(feature = "enabled")]
 		{
-			// It is an implementation detail and can be changed at any moment.
+			// This is an implementation detail and can be changed at any moment.
 
+			#[cfg(feature = "unstable-function-names")]
 			struct X;
-			// Tracking issue on the Rust side:
-			// https://github.com/rust-lang/rust/issues/63084
-			// :UnstableTypeName
-			const TYPE_NAME: &'static str = std::any::type_name::<X>();
-			// We skip 3 of the '::X' suffix and add 1 for the terminating zero.
-			const FUNCTION_LEN: usize = TYPE_NAME.len() - 3 + 1;
-			const FUNCTION: &'static [u8] = &$crate::details::as_array::<FUNCTION_LEN>(TYPE_NAME);
+			#[cfg(feature = "unstable-function-names")]
+			const FUNCTION: &'static [u8] = {
+				&$crate::details::get_fn_name_from_nested_type::<X>()
+			};
+
+			#[cfg(not(feature = "unstable-function-names"))]
+			const FUNCTION: &'static [u8] = b"<unavailable>\0";
 
 			// SAFETY: All passed data is created here and is correct.
 			static LOC: $crate::ZoneLocation = unsafe {
@@ -804,22 +833,57 @@ pub mod details {
 		Frame(name)
 	}
 
-	pub const fn as_array<const N: usize>(s: &'static str) -> [u8; N] {
-		let bytes   = s.as_bytes();
-		let mut buf = [0; N];
+	// Function name trick only works with an unstable
+	// feature, which provides const `type_name`. Tracking
+	// issue on the Rust side:
+	// https://github.com/rust-lang/rust/issues/63084
+	#[cfg(feature = "unstable-function-names")]
+	pub const fn get_fn_name_from_nested_type<T>() -> [u8; std::any::type_name::<T>().len() - 2]
+	where
+		[(); std::any::type_name::<T>().len() - 2]:
+	{
+		let bytes   = std::any::type_name::<T>().as_bytes();
+		// We skip (-3 + 1) of the type name length, to skip the '::X' suffix and add the terminating zero.
+		let mut buf = [0; std::any::type_name::<T>().len() - 2];
+		let n       = buf.len() - 1;
 		let mut i   = 0;
-		while i < N - 1 {
+
+		while i < n {
 			buf[i] = bytes[i];
 			i += 1;
 		}
+
 		buf
 	}
+
+	// Function above could be replaced by the following code directly
+	// in the macro body, when const_type_name is stable.
+	//
+	// const FUNCTION: &'static [u8] = {
+	// 	struct X;
+	// 	const TYPE_NAME: &'static str = std::any::type_name::<X>();
+	// 	// We skip 3 of the '::X' suffix and add 1 for the terminating zero.
+	// 	const FUNCTION_LEN: usize = TYPE_NAME.len() - 3 + 1;
+	// 	&$crate::details::as_array::<FUNCTION_LEN>(TYPE_NAME)
+	// };
+	// pub const fn as_array<const N: usize>(s: &'static str) -> [u8; N] {
+	// 	let bytes   = s.as_bytes();
+	// 	let mut buf = [0; N];
+	// 	let mut i   = 0;
+	// 	while i < N - 1 {
+	// 		buf[i] = bytes[i];
+	// 		i += 1;
+	// 	}
+	// 	buf
+	// }
 }
 
 #[cfg(test)]
 mod tests {
+	#[cfg(feature = "enabled")]
     use super::*;
 
+	#[cfg(feature = "enabled")]
 	#[test]
 	fn double_lifecycle() {
 		let tracy = TracyClient::start();
@@ -827,84 +891,11 @@ mod tests {
 		let _tracy = TracyClient::start();
 	}
 
+	#[cfg(feature = "enabled")]
 	#[test]
 	#[should_panic]
 	fn double_start_fails() {
 		let _tracy1 = TracyClient::start();
 		let _tracy2 = TracyClient::start();
-	}
-
-	#[test]
-	fn playground() {
-		let tracy = TracyClient::start();
-		while !tracy.is_connected() {
-			std::thread::yield_now();
-		}
-
-		app_info("Playground app");
-		app_info("Version is 0.0.1");
-		message!("we started");
-
-		set_thread_name!("main-thread");
-		let t = std::thread::spawn(|| {
-			message!(Color::NAVY, &format!("worker-thread {} started", 1));
-			message!(Color::OLIVE, "fmt {}", 1);
-			message!("worker-thread {} started", 1);
-			set_thread_name!("worker-thread {}", 1);
-			zone!("work");
-			std::thread::sleep(std::time::Duration::from_secs(1));
-			zone!("inside work");
-			std::thread::sleep(std::time::Duration::from_secs(1));
-		});
-		let d = std::thread::spawn(|| {
-			message!("worker-thread {} started at {}", 2, "kek");
-			set_thread_name!("worker-thread {}", 2);
-			zone!("work");
-			std::thread::sleep(std::time::Duration::from_secs(1));
-			zone!("inside work");
-			std::thread::sleep(std::time::Duration::from_secs(1));
-		});
-
-		let p = std::thread::spawn(|| {
-			set_thread_name!("plotter");
-			zone!("plotting", Color::NAVY_BLUE);
-			let pconfig = PlotConfig {
-				format: PlotFormat::Number,
-				style:  PlotStyle::Smooth,
-				color:  Color::PEACH_PUFF1,
-				filled: false,
-			};
-			let p = make_plot!("Number of keks", pconfig);
-			for i in 0..100 {
-				p.emit(100 - i);
-				plot!("i", i);
-				std::thread::sleep(std::time::Duration::from_millis(30));
-			}
-		});
-
-		message!("dodo before kek");
-		{
-			zone!("kek");
-			zone!("enabled",  enabled: true);
-			zone!("disabled", enabled: false);
-			zone!("r", Color::BISQUE1);
-			zone!("g", Color::BISQUE2);
-			zone!("b", Color::BISQUE3);
-			std::thread::sleep(std::time::Duration::from_secs(2));
-			zone!(zone, "valueable!");
-			zone.text("i am text 1");
-			zone.text("i am text 2");
-			zone.text("i am text 3");
-			zone.number(u64::MAX);
-			zone.number(31337);
-			zone.number(u64::MIN);
-			std::thread::sleep(std::time::Duration::from_secs(1));
-		}
-
-		message!(Color::YELLOW, "waiting threads");
-		t.join().unwrap();
-		d.join().unwrap();
-		p.join().unwrap();
-		message!(Color::GREEN, "threads are done");
 	}
 }
