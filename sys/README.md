@@ -8,14 +8,11 @@ Instead of submodules or manual copying, we are using `git-subtree` to
 do this. It worth revisiting this as local checkout and 1 copy command
 might be easier.
 
-We are getting Tracy's `master` for now and can later switch to stable
-release tags in the future.
-
 ## Bindings
 
 Bindings are generated via `bindgen` and are commited as a `src/`
 part. It allows to build this crate quickly and without LLVM (bindgen
-requires libclan to do its thing).
+requires libclang to do its thing).
 
 When `tracy/` is updated, the bindings should be regenerated:
 ``` sh
