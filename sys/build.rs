@@ -47,8 +47,6 @@ fn main() {
 	// However, it is not that easy on Windows and dealing with
 	// versions might be hairy.
 
-	// @Incomplete Link dependencies?
-
 	let mut builder = cc::Build::new();
 	builder
 		.cpp(true)

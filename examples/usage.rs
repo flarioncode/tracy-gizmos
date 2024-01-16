@@ -15,6 +15,8 @@ use tracy_gizmos::{
 fn main() {
 	println!("Connecting to Tracy...");
 	let tracy = TracyClient::start();
+
+	// This could be removed if `no-exit` feature is enabled.
 	while !tracy.is_connected() {
 		std::thread::yield_now();
 	}
