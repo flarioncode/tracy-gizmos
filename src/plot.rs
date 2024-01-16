@@ -15,18 +15,21 @@ use crate::Color;
 /// ```
 #[macro_export]
 macro_rules! plot {
-	($name:literal, $value:expr) => {{
-		use $crate::PlotEmit;
-		$crate::Plot::new(
-			// SAFETY: We null-terminate the string.
-			unsafe {
-				std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
-			},
-		).emit($value);
-	}};
+	($name:literal, $value:expr) => {
+		#[cfg(feature = "enabled")]
+		{
+			use $crate::PlotEmit;
+			$crate::Plot::new(
+				// SAFETY: We null-terminate the string.
+				unsafe {
+					std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
+				},
+			).emit($value);
+		}
+	};
 }
 
-/// Create and configures the plot.
+/// Creates and configures the plot.
 ///
 /// It allows to create a plot and configure it.
 /// If you are fine with the plot defaults, you can just use [`plot`].
@@ -77,6 +80,7 @@ impl Plot {
 	}
 
 	pub fn with_config(name: &'static CStr, config: PlotConfig) -> Self {
+		#[cfg(feature = "enabled")]
 		// SAFETY: `PlotConfig` ensures values are correct.
 		unsafe {
 			sys::___tracy_emit_plot_config(
@@ -104,12 +108,18 @@ pub trait PlotEmit<T> {
 macro_rules! impl_emit {
 	($ty:ident, $with:ident) => {
 		impl PlotEmit<$ty> for Plot {
+			#[cfg(feature = "enabled")]
 			#[inline(always)]
 			fn emit(&self, value: $ty) {
 				// SAFETY: `Plot` creation ensures the name correctness.
 				unsafe {
 					sys::$with(self.0.as_ptr(), value);
 				}
+			}
+
+			#[cfg(not(feature = "enabled"))]
+			#[inline(always)]
+			fn emit(&self, _: $ty) {
 			}
 		}
 	};
@@ -151,20 +161,36 @@ impl Default for PlotConfig {
 #[repr(i32)]
 pub enum PlotFormat {
 	/// Values will be displayed as plain numbers.
-	Number = sys::TracyPlotFormatNumber,
+	Number = 0,
 	/// Treats the values as memory sizes.
 	///
 	/// Tracy will display kilobytes, megabytes, etc.
-	Memory = sys::TracyPlotFormatMemory,
+	Memory = 1,
 	/// Values will be displayed as percentage.
 	///
 	/// With a value of `100` being equal to 100%.
-	Percentage = sys::TracyPlotFormatPercentage,
+	Percentage = 2,
 	/// Values will be displayed as watts.
 	///
 	/// E.g. `5` will be displayed as `5 W`.
-	Watts = sys::TracyPlotFormatWatt,
+	Watts = 3,
 }
+
+#[cfg(feature = "enabled")]
+macro_rules! const_assert {
+	($x:expr $(,)?) => {
+		const _: [(); 0 - !{ const ASSERT: bool = $x; ASSERT } as usize] = [];
+	};
+}
+
+#[cfg(feature = "enabled")]
+const_assert!(PlotFormat::Number     == sys::TracyPlotFormatNumber);
+#[cfg(feature = "enabled")]
+const_assert!(PlotFormat::Memory     == sys::TracyPlotFormatMemory);
+#[cfg(feature = "enabled")]
+const_assert!(PlotFormat::Percentage == sys::TracyPlotFormatPercentage);
+#[cfg(feature = "enabled")]
+const_assert!(PlotFormat::Watts      == sys::TracyPlotFormatWatt);
 
 /// An enum representing the plot style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
