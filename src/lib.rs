@@ -548,18 +548,18 @@ impl Drop for TracyClient {
 /// ```
 #[macro_export]
 macro_rules! zone {
-	(            $name:literal)                               => { zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:true) };
-	($var:ident, $name:literal)                               => { zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:true) };
-	(            $name:literal, $color:expr)                  => { zone!(_z,   $name, $color,                     enabled:true) };
-	($var:ident, $name:literal, $color:expr)                  => { zone!($var, $name, $color,                     enabled:true) };
-	(            $name:literal,              enabled:$e:expr) => { zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
-	($var:ident, $name:literal,              enabled:$e:expr) => { zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
-	(            $name:literal, $color:expr, enabled:$e:expr) => { zone!(_z,   $name, $color,                     enabled:$e)   };
+	(            $name:literal)                               => { $crate::zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:true) };
+	($var:ident, $name:literal)                               => { $crate::zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:true) };
+	(            $name:literal, $color:expr)                  => { $crate::zone!(_z,   $name, $color,                     enabled:true) };
+	($var:ident, $name:literal, $color:expr)                  => { $crate::zone!($var, $name, $color,                     enabled:true) };
+	(            $name:literal,              enabled:$e:expr) => { $crate::zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
+	($var:ident, $name:literal,              enabled:$e:expr) => { $crate::zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
+	(            $name:literal, $color:expr, enabled:$e:expr) => { $crate::zone!(_z,   $name, $color,                     enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
 		#[cfg(feature = "enabled")]
 		// SAFETY: This macro ensures that location & context data are correct.
 		let $var = unsafe {
-			$crate::details::zone(zone!(@loc $name, $color), if $e {1} else {0})
+			$crate::details::zone($crate::zone!(@loc $name, $color), if $e {1} else {0})
 		};
 
 		#[cfg(not(feature = "enabled"))]
