@@ -44,7 +44,7 @@
 //!
 //! # Tracy features
 //!
-//! Tracy client functionality can be controlled pretty granullary.
+//! Tracy client functionality can be controlled pretty granularly.
 //! Refer to the Tracy's manual for more details. A corresponding
 //! define is listed for each feature, which can be used to search the
 //! Tracy's documentation or source code, if needed.
@@ -67,7 +67,7 @@
 //! instrumented data (requires privelege escalation on Windows).
 //! Influences `TRACY_NO_SAMPLING`.
 //! - **`callstack-inlines`** - enables the inline frames retrieval in
-//! callstacks, which provides more precies information but is
+//! callstacks, which provides more precise information but is
 //! magnitude slower. Influences `TRACY_NO_CALLSTACK_INLINES`.
 //! - **`hw-counters`** - enables the hardware performance counters
 //! sampling (available only on Linux or WSL): IPC, branch
@@ -169,7 +169,7 @@ macro_rules! set_thread_name {
 
 /// Sends a message to Tracy's log.
 ///
-/// Fast navigation in alrge data sets and correlating zones with what
+/// Fast navigation in large data sets and correlating zones with what
 /// was happening in the application may be difficult. To ease these
 /// issues, Tracy provides a message log functionality. You can send
 /// messages (e.g. debug log output) using this macro.
@@ -268,7 +268,7 @@ macro_rules! message {
 /// Note, that this is fully optional, as lots of applications do not
 /// even us the concept of a frame.
 ///
-/// Each frame starts *immediately* after previous has ended.
+/// Each frame starts *immediately* after previous one has ended.
 ///
 /// Some types of frames are discontinuous by their natures - they are
 /// executed periodically, with a pause between each run. E.g. a
@@ -277,14 +277,14 @@ macro_rules! message {
 /// frames.
 ///
 /// Frame types *must not* be mixed. For each frame set, identified by
-/// an unique name, use ither a continuous or discontinuous frames
+/// an unique name, use either a continuous or discontinuous frame
 /// only!
 ///
 /// # Examples
 ///
 /// Here comes all possible and interesting cases of frame marking.
 ///
-/// ## Marking frames
+/// ## Main frame
 ///
 /// As simple as:
 ///
@@ -326,14 +326,14 @@ macro_rules! message {
 /// ## Discontinuous frames
 ///
 /// As discontinuous frame doesn't start immediately after previous
-/// has ended, you need to manually mark the frame's scope:
+/// one has ended, you need to manually mark the frame's scope:
 ///
 /// ```no_run
 /// # use tracy_gizmos::*;
 /// fn do_io_request() {
-///     // This declares the `io` variable containing a guard, which
+///     // This declares the `_io` variable containing a guard, which
 ///     // marks the frame end when dropped.
-///     frame!(io, "IO");
+///     frame!(_io, "IO");
 ///
 ///     // do the I/O work.
 /// }
@@ -428,6 +428,10 @@ impl TracyClient {
 	/// // You can do the profiling here knowing it will reach
 	/// // Tracy.
 	/// ```
+	///
+	/// You can also enabled `no-exit` feature instead, so
+	/// [`TracyClient`] will do a blocking wait for the profiling data
+	/// to be transfered to the server, when dropped.
 	pub fn is_connected(&self) -> bool {
 		#[cfg(feature = "enabled")]
 		// SAFETY: self could exist only if startup was issued and
