@@ -210,9 +210,9 @@ macro_rules! set_thread_name {
 /// message!(Color::GREEN, "{} is good!", file_path);
 /// ```
 #[macro_export]
+#[cfg(any(doc, feature = "enabled"))]
 macro_rules! message {
 	($text:literal) => {
-		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::message(concat!($text, '\0').as_ptr());
@@ -220,20 +220,15 @@ macro_rules! message {
 	};
 
 	($text:expr) => {
-		#[cfg(feature = "enabled")]
 		$crate::details::message_size($text);
 	};
 
 	($format:literal, $($args:expr),*) => {
-		#[cfg(feature = "enabled")]
-		{
-			let _text = format!($format, $($args),*);
-			$crate::details::message_size(&_text);
-		}
+		let _text = format!($format, $($args),*);
+		$crate::details::message_size(&_text);
 	};
 
 	($color:expr, $text:literal) => {
-		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::message_color(
@@ -244,7 +239,6 @@ macro_rules! message {
 	};
 
 	($color:expr, $text:expr) => {
-		#[cfg(feature = "enabled")]
 		$crate::details::message_size_color(
 			$text,
 			$color,
@@ -252,11 +246,40 @@ macro_rules! message {
 	};
 
 	($color:expr, $format:literal, $($args:expr),*) => {
-		#[cfg(feature = "enabled")]
-		{
-			let _text = format!($format, $($args),*);
-			$crate::details::message_size_color(&_text, $color);
-		}
+		let _text = format!($format, $($args),*);
+		$crate::details::message_size_color(&_text, $color);
+	};
+}
+
+#[macro_export]
+#[cfg(all(not(doc), not(feature = "enabled")))]
+macro_rules! message {
+	($text:literal) => {};
+
+	($whatever:expr $(, $text:literal)?) => {
+		// Silences unused expression warning.
+		_ = $whatever;
+	};
+
+	($format:literal, $($args:expr),*) => {
+		// Silence unused expression warnings.
+		$(
+			_ = $args;
+		)*
+	};
+
+	($color:expr, $text:expr) => {
+		// Silence unused expression warnings.
+		_ = $color;
+		_ = $text;
+	};
+
+	($color:expr, $format:literal, $($args:expr),*) => {
+		// Silence unused expression warnings.
+		_ = $color;
+		$(
+			_ = $args;
+		)*
 	};
 }
 

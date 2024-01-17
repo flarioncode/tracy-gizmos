@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] add examples in a workspace with a separate cargo to test better
 - [ ] callstacks! depth is at most 62
 - [ ] auto-function proc-macro attributes:
 	- [ ] #[zone]
