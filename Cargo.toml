@@ -1,6 +1,6 @@
 [package]
 name        = "tracy-gizmos"
-version     = "0.0.1"
+version     = "0.0.2"
 authors     = ["Denys Mentiei <endden@gmail.com>"]
 description = "Bindings for the client library of the Tracy profiler"
 repository  = "https://github.com/den-mentiei/tracy-gizmos"
