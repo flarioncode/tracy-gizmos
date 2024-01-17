@@ -1,17 +1,17 @@
 # TODO
 
-- [ ] add examples in a workspace with a separate cargo to test better
-- [ ] callstacks! depth is at most 62
 - [ ] auto-function proc-macro attributes:
 	- [ ] #[zone]
 	- [ ] #[zone(name)]
 	- [ ] #[zone(color)]
 	- [ ] #[zone(name, color)]
 	- [ ] + callstacks?! + enabled
+- [ ] callstacks! depth is at most 62
 - [ ] what's up with locks & C API
 - [ ] what's up with alloc & free, named overloads
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] add examples in a workspace with a separate cargo to test better
 - [x] enable function names only on nightly via `build.rs` and `cargo:rustc-cfg=nightly`
 - [x] make sure enable feature actually works
 - [x] plots example

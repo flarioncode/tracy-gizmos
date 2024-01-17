@@ -1,7 +1,7 @@
 [workspace]
 members = [
 	"tracy-gizmos",
-	"sys",
+	"tracy-gizmos-sys",
 	"examples",
 ]
 resolver = "2"

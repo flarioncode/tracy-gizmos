@@ -13,7 +13,7 @@ readme.workspace     = true
 [dependencies.sys]
 package  = "tracy-gizmos-sys"
 version  = "0.10.0"
-path     = "../sys"
+path     = "../tracy-gizmos-sys"
 optional = true
 
 [features]
