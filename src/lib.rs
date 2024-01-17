@@ -280,6 +280,8 @@ macro_rules! message {
 /// an unique name, use either a continuous or discontinuous frame
 /// only!
 ///
+/// Under the hood it declares a local [`Frame`].
+///
 /// # Examples
 ///
 /// Here comes all possible and interesting cases of frame marking.
@@ -339,9 +341,9 @@ macro_rules! message {
 /// }
 /// ```
 #[macro_export]
+#[cfg(any(doc, feature = "enabled"))]
 macro_rules! frame {
 	() => {
-		#[cfg(feature = "enabled")]
 		// SAFETY: Null pointer means main frame.
 		unsafe {
 			$crate::details::mark_frame_end(std::ptr::null());
@@ -349,7 +351,6 @@ macro_rules! frame {
 	};
 
 	($name:literal) => {
-		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::mark_frame_end(concat!($name, '\0').as_ptr());
@@ -357,13 +358,25 @@ macro_rules! frame {
 	};
 
 	($var:ident, $name:literal) => {
-		#[cfg(feature = "enabled")]
+		#[allow(unused_variables)]
 		// SAFETY: We null-terminate the string.
 		let $var = unsafe {
 			$crate::details::discontinuous_frame(concat!($name, '\0').as_ptr().cast())
 		};
-		#[cfg(not(feature = "enabled"))]
-		let $var = ();
+	};
+}
+
+#[macro_export]
+#[cfg(all(not(doc), not(feature = "enabled")))]
+macro_rules! frame {
+	($($name:literal)? $($var:ident, $n:literal)?) => {
+		// $var could be used to denote a lexically scoped frame or
+		// even be manually `drop`-ed. Hence, we need to define it to
+		// keep the macro-using code compilable.
+		$(
+			#[allow(unused_variables)]
+			let $var = $crate::Frame();
+		)?
 	};
 }
 
@@ -464,6 +477,8 @@ impl Drop for TracyClient {
 /// profiled function scope, but it is also possible to measure time
 /// spent in nested loops or if branches.
 ///
+/// Under the hood it declares a local [`Zone`].
+///
 /// A custom name is required for the zone, which allows to identify
 /// it later in the Trace visualization.
 ///
@@ -547,6 +562,7 @@ impl Drop for TracyClient {
 /// parsing.text(file_path);
 /// ```
 #[macro_export]
+#[cfg(any(doc, feature = "enabled"))]
 macro_rules! zone {
 	(            $name:literal)                               => { $crate::zone!(_z,   $name, $crate::Color::UNSPECIFIED, enabled:true) };
 	($var:ident, $name:literal)                               => { $crate::zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:true) };
@@ -556,47 +572,60 @@ macro_rules! zone {
 	($var:ident, $name:literal,              enabled:$e:expr) => { $crate::zone!($var, $name, $crate::Color::UNSPECIFIED, enabled:$e)   };
 	(            $name:literal, $color:expr, enabled:$e:expr) => { $crate::zone!(_z,   $name, $color,                     enabled:$e)   };
 	($var:ident, $name:literal, $color:expr, enabled:$e:expr) => {
-		#[cfg(feature = "enabled")]
+		#[allow(unused_variables)]
 		// SAFETY: This macro ensures that location & context data are correct.
 		let $var = unsafe {
 			$crate::details::zone($crate::zone!(@loc $name, $color), if $e {1} else {0})
 		};
-
-		#[cfg(not(feature = "enabled"))]
-		let $var = {
-			// Silences unused import warning.
-			_ = $color;
-			$crate::Zone::new()
-		};
 	};
 
-	(@loc $name:literal, $color: expr) => {
-		#[cfg(feature = "enabled")]
-		{
-			// This is an implementation detail and can be changed at any moment.
+	(@loc $name:literal, $color: expr) => {{
+		// This is an implementation detail and can be changed at any moment.
 
-			#[cfg(feature = "unstable-function-names")]
-			struct X;
-			#[cfg(feature = "unstable-function-names")]
-			const FUNCTION: &'static [u8] = {
-				&$crate::details::get_fn_name_from_nested_type::<X>()
-			};
+		#[cfg(feature = "unstable-function-names")]
+		struct X;
+		#[cfg(feature = "unstable-function-names")]
+		const FUNCTION: &'static [u8] = {
+			&$crate::details::get_fn_name_from_nested_type::<X>()
+		};
 
-			#[cfg(not(feature = "unstable-function-names"))]
-			const FUNCTION: &'static [u8] = b"<unavailable>\0";
+		#[cfg(not(feature = "unstable-function-names"))]
+		const FUNCTION: &'static [u8] = b"<unavailable>\0";
 
-			// SAFETY: All passed data is created here and is correct.
-			static LOC: $crate::ZoneLocation = unsafe {
-				$crate::details::zone_location(
-					concat!($name, '\0'),
-					FUNCTION,
-					concat!(file!(), '\0'),
-					line!(),
-					$crate::Color::as_u32(&$color),
-				)
-			};
-			&LOC
-		}
+		// SAFETY: All passed data is created here and is correct.
+		static LOC: $crate::ZoneLocation = unsafe {
+			$crate::details::zone_location(
+				concat!($name, '\0'),
+				FUNCTION,
+				concat!(file!(), '\0'),
+				line!(),
+				$crate::Color::as_u32(&$color),
+			)
+		};
+		&LOC
+	}};
+}
+
+#[macro_export]
+#[cfg(all(not(doc), not(feature = "enabled")))]
+macro_rules! zone {
+	($($var:ident,)? $name:literal, enabled:$e:expr) => {
+		// Silences unused enabled expression warning.
+		_ = $e;
+		$crate::zone!($($var,)? $name, (), enabled:$e);
+	};
+
+	($($var:ident,)? $name:literal $(,$color:expr)? $(,enabled:$e:expr)?) => {
+		// $var could be used to add dynamic zone data, so we need to
+		// define it to keep the macro-using code compilable.
+		$(
+			#[allow(unused_variables)]
+			let $var = $crate::Zone::new();
+		)?
+		// Silences unused `Color` import warning.
+		$(
+			_ = $color;
+		)?
 	};
 }
 
@@ -612,10 +641,11 @@ pub struct Zone {
 	_unsend: PhantomData<*mut ()>,
 }
 
-#[cfg(feature = "enabled")]
+#[cfg(any(doc, feature = "enabled"))]
 impl Drop for Zone {
 	#[inline(always)]
 	fn drop(&mut self) {
+		#[cfg(feature = "enabled")]
 		// SAFETY: The only way to have Zone is to construct it via
 		// zone! macro, which ensures that ctx value is correct.
 		unsafe {
@@ -707,10 +737,11 @@ unsafe impl Sync for ZoneLocation {}
 /// frame will be marked as finished when [`Frame`] is dropped.
 pub struct Frame(#[cfg(feature = "enabled")] *const i8);
 
-#[cfg(feature = "enabled")]
+#[cfg(any(doc, feature = "enabled"))]
 impl Drop for Frame {
 	#[inline(always)]
 	fn drop(&mut self) {
+		#[cfg(feature = "enabled")]
 		// SAFETY: The only way to have Frame is to construct it via
 		// frame! macro, which ensures that contained pointer is
 		// correct.

@@ -9,7 +9,6 @@ use tracy_gizmos::{
 	PlotConfig,
 	PlotFormat,
 	PlotStyle,
-	PlotEmit,
 	make_plot,
 	plot,
 	zone,
@@ -32,14 +31,15 @@ fn main() {
 		.as_secs();
 
 	zone!("Plotting");
-	let percents = make_plot!("Load percentage", PlotConfig {
+
+	make_plot!(percents, "Load percentage", PlotConfig {
 		format: PlotFormat::Percentage,
 		style:  PlotStyle::Smooth,
 		color:  Color::PAPAYA_WHIP,
 		filled: true,
 	});
 
-	let highmark = make_plot!("High memory mark", PlotConfig {
+	make_plot!(highmark, "High memory mark", PlotConfig {
 		format: PlotFormat::Memory,
 		style:  PlotStyle::Staircase,
 		color:  Color::ROSY_BROWN,
@@ -51,8 +51,8 @@ fn main() {
 
 		plot!("i", i as i64);
 		plot!("random", r % 1000);
-		percents.emit(r % 100);
-		highmark.emit(r);
+		plot!(percents, r % 100);
+		plot!(highmark, r);
 
 		sleep(Duration::from_millis(10));
 	}

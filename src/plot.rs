@@ -15,23 +15,20 @@ use crate::Color;
 /// ```
 #[macro_export]
 macro_rules! plot {
-	($name:literal, $value:expr) => {
-		#[cfg(feature = "enabled")]
-		{
-			use $crate::PlotEmit;
-			$crate::Plot::new(
-				// SAFETY: We null-terminate the string.
-				unsafe {
-					std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
-				},
-			).emit($value);
-		}
-		#[cfg(not(feature = "enabled"))]
-		{
-			// Silences unused variable warning.
-			_ = $value;
-		}
-	};
+	($name:literal, $value:expr) => {{
+		use $crate::PlotEmit;
+		$crate::Plot::new(
+			// SAFETY: We null-terminate the string.
+			unsafe {
+				std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
+			},
+		).emit($value);
+	}};
+
+	($plot:ident, $value:expr) => {{
+		use $crate::PlotEmit;
+		$plot.emit($value);
+	}};
 }
 
 /// Creates and configures the plot.
@@ -44,19 +41,34 @@ macro_rules! plot {
 /// ```no_run
 /// # use tracy_gizmos::*;
 /// let plot_config = PlotConfig { filled: true, ..Default::default() };
-/// let draw_calls  = make_plot!("Draw calls", plot_config);
-/// draw_calls.emit(10);
+/// make_plot!(draws, "Draw calls", plot_config);
+/// plot!(draws, 10);
 /// ```
 #[macro_export]
+#[cfg(any(doc, feature = "enabled"))]
 macro_rules! make_plot {
-	($name:literal, $config:expr) => {
-		$crate::Plot::with_config(
+	($var:ident, $name:literal, $config:expr) => {
+		#[allow(unused_variables)]
+		let $var = $crate::Plot::with_config(
 			// SAFETY: We null-terminate the string.
 			unsafe {
 				std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
 			},
 			$config
-		)
+		);
+	};
+}
+
+#[macro_export]
+#[cfg(all(not(doc), not(feature = "enabled")))]
+macro_rules! make_plot {
+	($var:ident, $name:literal, $config:expr) => {
+		// $var could be used with further `plot!` emissions,
+		// define it to keep the macro-using code compilable.
+		#[allow(unused_variables)]
+		let $var = $crate::Plot();
+		// Silences unused `Plot*` imports warning.
+		_ = $config;
 	};
 }
 
