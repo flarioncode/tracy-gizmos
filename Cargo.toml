@@ -2,6 +2,7 @@
 members = [
 	"tracy-gizmos",
 	"tracy-gizmos-sys",
+	"tracy-gizmos-attributes",
 	"examples",
 ]
 resolver = "2"
