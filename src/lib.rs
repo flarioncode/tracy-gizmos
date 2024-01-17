@@ -427,16 +427,17 @@ impl TracyClient {
 	/// // You can do the profiling here knowing it will reach
 	/// // Tracy.
 	/// ```
-	#[cfg(feature = "enabled")]
 	pub fn is_connected(&self) -> bool {
+		#[cfg(feature = "enabled")]
 		// SAFETY: self could exist only if startup was issued and
 		// succeeded.
 		unsafe {
 			sys::___tracy_connected() != 0
 		}
+
+		#[cfg(not(feature = "enabled"))]
+		true
 	}
-	#[cfg(not(feature = "enabled"))]
-	pub const fn is_connected(&self) -> bool { true }
 }
 
 #[cfg(feature = "enabled")]
