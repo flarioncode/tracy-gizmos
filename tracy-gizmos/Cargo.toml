@@ -1,0 +1,34 @@
+[package]
+name                 = "tracy-gizmos"
+version              = "0.0.5"
+description          = "Bindings for the client library of the Tracy profiler"
+keywords             = ["profiler", "performance", "tracy", "api-bindings"]
+categories           = ["development-tools::profiling", "api-bindings"]
+repository.workspace = true
+authors.workspace    = true
+license.workspace    = true
+edition.workspace    = true
+readme.workspace     = true
+
+[dependencies.sys]
+package  = "tracy-gizmos-sys"
+version  = "0.10.0"
+path     = "../sys"
+optional = true
+
+[features]
+default                 = []
+enabled                 = ["dep:sys", "only-localhost"]
+unstable-function-names = []
+crash-handler           = ["sys/crash-handler"]
+system-tracing          = ["sys/system-tracing"]
+context-switch          = ["sys/context-switch"]
+sampling                = ["sys/sampling"]
+callstack-inlines       = ["sys/callstack-inlines"]
+hw-counters             = ["sys/hw-counters"]
+code-transfer           = ["sys/code-transfer"]
+vsync                   = ["sys/vsync"]
+no-exit                 = ["sys/no-exit"]
+broadcast               = ["sys/broadcast"]
+only-localhost          = ["sys/only-localhost"]
+only-ipv4               = ["sys/only-ipv4"]

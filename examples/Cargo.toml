@@ -4,7 +4,7 @@ publish = false
 edition = "2021"
 
 [dev-dependencies]
-tracy-gizmos = { path = "../" }
+tracy-gizmos = { path = "../tracy-gizmos" }
 
 [features]
 default      = []

@@ -1,38 +1,14 @@
-[package]
-name        = "tracy-gizmos"
-version     = "0.0.5"
-authors     = ["Denys Mentiei <endden@gmail.com>"]
-description = "Bindings for the client library of the Tracy profiler"
-repository  = "https://github.com/den-mentiei/tracy-gizmos"
-license     = "MIT OR Apache-2.0"
-readme      = "README.md"
-keywords    = ["profiler", "performance", "tracy", "api-bindings"]
-categories  = ["development-tools::profiling", "api-bindings"]
-edition     = "2021"
-exclude     = ["TODO.md"]
-
-[dependencies.sys]
-package  = "tracy-gizmos-sys"
-version  = "0.10.0"
-path     = "sys"
-optional = true
-
 [workspace]
-members = ["sys", "examples"]
+members = [
+	"tracy-gizmos",
+	"sys",
+	"examples",
+]
+resolver = "2"
 
-[features]
-default                 = []
-enabled                 = ["dep:sys", "only-localhost"]
-unstable-function-names = []
-crash-handler           = ["sys/crash-handler"]
-system-tracing          = ["sys/system-tracing"]
-context-switch          = ["sys/context-switch"]
-sampling                = ["sys/sampling"]
-callstack-inlines       = ["sys/callstack-inlines"]
-hw-counters             = ["sys/hw-counters"]
-code-transfer           = ["sys/code-transfer"]
-vsync                   = ["sys/vsync"]
-no-exit                 = ["sys/no-exit"]
-broadcast               = ["sys/broadcast"]
-only-localhost          = ["sys/only-localhost"]
-only-ipv4               = ["sys/only-ipv4"]
+[workspace.package]
+authors    = ["Denys Mentiei <endden@gmail.com>"]
+repository = "https://github.com/den-mentiei/tracy-gizmos"
+license    = "MIT OR Apache-2.0"
+edition    = "2021"
+readme     = "README.md"
