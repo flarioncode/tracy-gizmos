@@ -28,6 +28,7 @@ macro_rules! plot {
 		}
 		#[cfg(not(feature = "enabled"))]
 		{
+			// Silences unused variable warning.
 			_ = $value;
 		}
 	};
@@ -35,7 +36,6 @@ macro_rules! plot {
 
 /// Creates and configures the plot.
 ///
-/// It allows to create a plot and configure it.
 /// If you are fine with the plot defaults, you can just use [`plot`].
 ///
 /// Value could be emitted to the plot after that.
@@ -79,19 +79,13 @@ pub struct Plot(#[cfg(feature = "enabled")] &'static CStr);
 #[doc(hidden)]
 impl Plot {
 	#[inline(always)]
-	#[cfg(feature = "enabled")]
 	pub fn new(name: &'static CStr) -> Self {
-		Self(name)
-	}
-	#[inline(always)]
-	#[cfg(not(feature = "enabled"))]
-	pub fn new(_: &'static CStr) -> Self {
-		Self()
+		Self(#[cfg(feature = "enabled")] name)
 	}
 
 	#[inline(always)]
-	#[cfg(feature = "enabled")]
 	pub fn with_config(name: &'static CStr, config: PlotConfig) -> Self {
+		#[cfg(feature = "enabled")]
 		// SAFETY: `PlotConfig` ensures values are correct.
 		unsafe {
 			sys::___tracy_emit_plot_config(
@@ -103,12 +97,7 @@ impl Plot {
 			);
 		}
 
-		Self(name)
-	}
-	#[inline(always)]
-	#[cfg(not(feature = "enabled"))]
-	pub fn with_config(_: &'static CStr, _: PlotConfig) -> Self {
-		Self()
+		Self(#[cfg(feature = "enabled")] name)
 	}
 }
 
@@ -124,18 +113,13 @@ pub trait PlotEmit<T> {
 macro_rules! impl_emit {
 	($ty:ident, $with:ident) => {
 		impl PlotEmit<$ty> for Plot {
-			#[cfg(feature = "enabled")]
 			#[inline(always)]
 			fn emit(&self, value: $ty) {
+				#[cfg(feature = "enabled")]
 				// SAFETY: `Plot` creation ensures the name correctness.
 				unsafe {
 					sys::$with(self.0.as_ptr(), value);
 				}
-			}
-
-			#[cfg(not(feature = "enabled"))]
-			#[inline(always)]
-			fn emit(&self, _: $ty) {
 			}
 		}
 	};

@@ -40,7 +40,7 @@ fn main() {
 	});
 
 	let w2 = thread::spawn(|| {
-		set_thread_name!("Worker 2");
+		set_thread_name!("Worker {:?}", std::thread::current().id());
 
 		{
 			zone!("delay", Color::ORANGE);

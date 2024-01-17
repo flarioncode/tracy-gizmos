@@ -1,4 +1,5 @@
 #![cfg_attr(feature = "enabled", deny(missing_docs))]
+#![cfg_attr(not(feature = "enabled"), allow(unused_variables))]
 #![cfg_attr(
 	feature = "unstable-function-names",
 	allow(incomplete_features),
@@ -597,7 +598,7 @@ macro_rules! zone {
 
 /// Profiling zone.
 ///
-/// Refer to [`zone!`] for usage howto.
+/// Refer to [`zone!`] for the usage how-to.
 ///
 /// It instruments the current scope. Hence, the profiling zone will
 /// end when [`Zone`] is dropped.
@@ -620,6 +621,7 @@ impl Drop for Zone {
 }
 
 impl Zone {
+	#[doc(hidden)]
 	#[cfg(not(feature = "enabled"))]
 	pub fn new() -> Self {
 		Self { _unsend: PhantomData }
@@ -629,15 +631,18 @@ impl Zone {
 	///
 	/// This can be called multiple times, however only the latest
 	/// call will have an effect.
-	#[cfg(feature = "enabled")]
 	pub fn color(&self, color: Color) {
+		#[cfg(feature = "enabled")]
 		// SAFETY: self always contains a valid `ctx`.
 		unsafe {
 			sys::___tracy_emit_zone_color(self.ctx, color.as_u32());
 		}
+		#[cfg(not(feature = "enabled"))]
+		{
+			// Silences unused import warning.
+			_ = color;
+		}
 	}
-	#[cfg(not(feature = "enabled"))]
-	pub fn color(&self, _: Color) {}
 
 	/// Adds a custom numeric value that will be displayed along with
 	/// the zone information. E.g. a loop iteration or size of the
@@ -647,13 +652,12 @@ impl Zone {
 	/// values will be attached to the zone matching the call order.
 	#[cfg(feature = "enabled")]
 	pub fn number(&self, value: u64) {
+		#[cfg(feature = "enabled")]
 		// SAFETY: self always contains a valid `ctx`.
 		unsafe {
 			sys::___tracy_emit_zone_value(self.ctx, value);
 		}
 	}
-	#[cfg(not(feature = "enabled"))]
-	pub fn number(&self, _: u64) {}
 
 	/// Adds a custom text string that will be displayed along with
 	/// the zone information. E.g. name of the file you are
@@ -668,16 +672,16 @@ impl Zone {
 	///
 	/// Be aware that the passed text slice couldn't be larger than 64
 	/// Kb.
-	#[cfg(feature = "enabled")]
 	pub fn text(&self, s: &str) {
-		debug_assert!(s.len() < u16::MAX as usize);
-		// SAFETY: self always contains a valid `ctx`.
-		unsafe {
-			sys::___tracy_emit_zone_text(self.ctx, s.as_ptr().cast(), s.len())
+		#[cfg(feature = "enabled")]
+		{
+			debug_assert!(s.len() < u16::MAX as usize);
+			// SAFETY: self always contains a valid `ctx`.
+			unsafe {
+				sys::___tracy_emit_zone_text(self.ctx, s.as_ptr().cast(), s.len())
+			}
 		}
 	}
-	#[cfg(not(feature = "enabled"))]
-	pub fn text(&self, _: &str) {}
 }
 
 /// A statically allocated location for a profiling zone.
@@ -728,18 +732,18 @@ impl Drop for Frame {
 /// app_info("My fancy application");
 /// app_info(env!("CARGO_PKG_VERSION"));
 /// ```
-#[cfg(feature = "enabled")]
 #[inline(always)]
 pub fn app_info(info: &str) {
-	debug_assert!(info.len() < u16::MAX as usize);
-	// SAFETY: Slice should contain valid data and having no
-	// terminating zero is fine.
-	unsafe {
-		sys::___tracy_emit_message_appinfo(info.as_ptr().cast(), info.len());
+	#[cfg(feature = "enabled")]
+	{
+		debug_assert!(info.len() < u16::MAX as usize);
+		// SAFETY: Slice should contain valid data and having no
+		// terminating zero is fine.
+		unsafe {
+			sys::___tracy_emit_message_appinfo(info.as_ptr().cast(), info.len());
+		}
 	}
 }
-#[cfg(not(feature = "enabled"))]
-pub fn app_info(_: &str) {}
 
 /// Implementation details, do not relay on anything from this module!
 ///
