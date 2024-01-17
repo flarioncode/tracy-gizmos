@@ -1,0 +1,11 @@
+[package]
+name    = "tracy-gizmos-examples"
+publish = false
+edition = "2021"
+
+[dev-dependencies]
+tracy-gizmos = { path = "../" }
+
+[features]
+default      = []
+instrumented = ["tracy-gizmos/enabled"]
