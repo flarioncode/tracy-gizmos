@@ -1,10 +1,7 @@
-#![feature(const_type_name)] // :UnstableTypeName
-
 use std::thread::{self, sleep};
 use std::time::Duration;
 
 use tracy_gizmos::{
-	TracyClient,
 	Color,
 	set_thread_name,
 	zone,
@@ -16,7 +13,7 @@ const FRAMES: usize = 16;
 
 fn main() {
 	println!("Connecting to Tracy...");
-	let tracy = TracyClient::start();
+	let tracy = tracy_gizmos::start_capture();
 
 	// This could be removed if `no-exit` feature is enabled.
 	while !tracy.is_connected() {

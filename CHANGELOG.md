@@ -17,10 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `#[instrument]` attribute to instrument functions automatically.
+- attributes example.
 
 ### Changed
 
 - `TracyClient::new` is gone, use `start_capture()` instead.
+- `TracyClient` renamed to `TracyCapture`.
 
 ### Fixed
 

@@ -32,10 +32,9 @@ tracy-gizmos = { version = "0.0.1", features = ["enabled"] }
 The usage is pretty straight-forward (for more details refer to the docs):
 
 ```rust
-use tracy_gizmos::*;
 fn main() {
-	let tracy = TracyClient::start();
-	zone!("main");
+	let _tracy = tracy_gizmos::start_capture();
+	tracy_gizmos::zone!("main");
 	work();
 }
 ```

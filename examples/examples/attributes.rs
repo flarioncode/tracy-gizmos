@@ -1,7 +1,7 @@
 #![allow(dead_code)] // @Incomplete remove htis.
 
 fn main() {
-	let _tracy = tracy_gizmos::TracyClient::start();
+	let _tracy = tracy_gizmos::start_capture();
 	work();
 }
 

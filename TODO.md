@@ -1,7 +1,6 @@
 # TODO
 
-- [ ] rename start & tracy client
-- [ ] proc-macro attribute to mark main and setup the client
+- [ ] proc-macro attribute to mark main and setup the capture
 - [ ] auto-function proc-macro attributes:
 	- [x] #[instrument]
 	- [ ] #[instrument(name)]
@@ -17,6 +16,7 @@
 - [ ] what's up with alloc & free, named overloads
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] rename start & tracy client
 - [x] add examples in a workspace with a separate cargo to test better
 - [x] enable function names only on nightly via `build.rs` and `cargo:rustc-cfg=nightly`
 - [x] make sure enable feature actually works

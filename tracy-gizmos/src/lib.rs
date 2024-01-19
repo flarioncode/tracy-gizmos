@@ -27,10 +27,9 @@
 //!
 //! ```no_run
 //! # fn work() { todo!() }
-//! use tracy_gizmos::*;
 //! fn main() {
-//!     let tracy = TracyClient::start();
-//!     zone!("main");
+//!     let tracy = tracy_gizmos::start_capture();
+//!     tracy_gizmos::zone!("main");
 //!     work();
 //! }
 //! ```
@@ -412,47 +411,48 @@ macro_rules! frame {
 #[cfg(feature = "enabled")]
 static STARTED: AtomicBool = AtomicBool::new(false);
 
-/// Represents a Tracy client.
+/// Starts the Tracy capture.
 ///
-/// Obtaining a `TracyClient` is *required* to instrument the code.
-/// Otherwise, the behaviour of instrumenting is undefined.
+/// Must be called *before* any other Tracy usage.
 ///
-/// It is not allowed to have multiple copies of the `TracyClient`.
+/// # Panics
 ///
-/// When it is dropped, the Tracy connection will be shutdown.
-pub struct TracyClient(PhantomData<*mut ()>);
-
-impl TracyClient {
-	/// Initializes the Tracy profiler.
-	///
-	/// Must be called *before* any other Tracy usage.
-	///
-	/// # Panics
-	///
-	/// Only one alive client can exist. Hence any consecutive
-	/// `start()` will panic, unless previously started client is
-	/// dropped.
-	///
-	/// # Examples
-	///
-	/// ```no_run
-	/// # use tracy_gizmos::TracyClient;
-	/// let tracy = TracyClient::start();
-	/// ```
-	pub fn start() -> Self {
-		#[cfg(feature = "enabled")]
-		{
-			if STARTED.swap(true, Ordering::Acquire) {
-				panic!("Tracy client has been started already.");
-			}
-			// SAFETY: Check above ensures this happens once.
-			unsafe {
-				sys::___tracy_startup_profiler();
-			}
+/// Only one active capture can exist. Hence any consecutive
+/// `start_capture()` will panic, unless previously started capture is
+/// dropped.
+///
+/// # Examples
+///
+/// ```no_run
+/// let _tracy = tracy_gizmos::start_capture();
+/// ```
+pub fn start_capture() -> TracyCapture {
+	#[cfg(feature = "enabled")]
+	{
+		if STARTED.swap(true, Ordering::Acquire) {
+			panic!("Tracy capture has been started already.");
 		}
-		Self(PhantomData)
+		// SAFETY: Check above ensures this happens once.
+		unsafe {
+			sys::___tracy_startup_profiler();
+		}
 	}
 
+	TracyCapture(PhantomData)
+}
+
+/// Represents an active Tracy capture.
+///
+/// Obtaining a [`TracyCapture`] is *required* to instrument the code.
+/// Otherwise, the behaviour of instrumenting is undefined.
+///
+/// It is not allowed to have multiple copies of the [`TracyCapture`].
+///
+/// When it is dropped, the Tracy connection will be shutdown, which
+/// will also finish the capture.
+pub struct TracyCapture(PhantomData<*mut ()>);
+
+impl TracyCapture {
 	/// Returns `true` if a connection is currently established with
 	/// the Tracy server.
 	///
@@ -462,8 +462,7 @@ impl TracyClient {
 	/// _before_ doing any profiled work.
 	///
 	/// ```no_run
-	/// # use tracy_gizmos::TracyClient;
-	/// let tracy = TracyClient::start();
+	/// let tracy = tracy_gizmos::start_capture();
 	/// while !tracy.is_connected() {
 	///     std::thread::yield_now();
 	/// }
@@ -472,7 +471,7 @@ impl TracyClient {
 	/// ```
 	///
 	/// You can also enabled `no-exit` feature instead, so
-	/// [`TracyClient`] will do a blocking wait for the profiling data
+	/// [`TracyCapture`] will do a blocking wait for the profiling data
 	/// to be transfered to the server, when dropped.
 	pub fn is_connected(&self) -> bool {
 		#[cfg(feature = "enabled")]
@@ -488,7 +487,7 @@ impl TracyClient {
 }
 
 #[cfg(feature = "enabled")]
-impl Drop for TracyClient {
+impl Drop for TracyCapture {
 	fn drop(&mut self) {
 		// SAFETY: self could exist only if startup was issued and
 		// succeeded.
@@ -955,16 +954,16 @@ mod tests {
 	#[cfg(feature = "enabled")]
 	#[test]
 	fn double_lifecycle() {
-		let tracy = TracyClient::start();
+		let tracy = start_capture();
 		drop(tracy);
-		let _tracy = TracyClient::start();
+		let _tracy = start_capture();
 	}
 
 	#[cfg(feature = "enabled")]
 	#[test]
 	#[should_panic]
 	fn double_start_fails() {
-		let _tracy1 = TracyClient::start();
-		let _tracy2 = TracyClient::start();
+		let _tracy1 = start_capture();
+		let _tracy2 = start_capture();
 	}
 }
