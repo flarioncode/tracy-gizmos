@@ -44,6 +44,8 @@ use proc_macro::{
 ///
 /// Session will end automatically at the end of the function' scope.
 ///
+/// *Note*: This will also [`macro@instrument`] the function automatically.
+///
 /// ## Examples
 ///
 /// ```
@@ -74,9 +76,33 @@ pub fn capture(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
 fn try_capture(item: TokenStream) -> Result<TokenStream, Error> {
 	let mut tokens: Vec<TokenTree> = item.into_iter().collect();
+	let mut tokens_it              = tokens.iter();
 
-	// @Robustness Check and issue a nice error, if item is not a
-	// function.
+	for t in tokens_it.by_ref() {
+		if let TokenTree::Ident(i) = t {
+			match i.to_string().as_str() {
+				"const" => return Err(Error::new("Const functions can't be a capture scope.", t.span())),
+				// Could be supported when fibers are implemented. Then, we can
+				// just generate a fiber-zone or whatever.
+				"async" => return Err(Error::new("Async functions can't be a capture scope, yet.", t.span())),
+				"fn"    => break,
+				_       => continue,
+			}
+		}
+	}
+
+	// Here, either iterator is empty now or we've just consumed the
+	// `fn` and ready to get the function name.
+
+	let Some(TokenTree::Ident(i)) = tokens_it.next() else {
+		let span = tokens.first().unwrap().span();
+		return Err(Error::new("Only functions can be a capture scope.", span));
+	};
+
+	let name = i.to_string();
+	// r# is only important for the rustc, Tracy zone name can be
+	// whatever.
+	let name = name.strip_prefix("r#").unwrap_or(&name);
 
 	// The function body should be the last token tree.
 	let body = match tokens.pop() {
@@ -85,7 +111,13 @@ fn try_capture(item: TokenStream) -> Result<TokenStream, Error> {
 		_ => unreachable!(),
 	};
 
-	let augmented_body = vec![make_start_capture(), body.stream()]
+	let augmented_body = vec![
+			make_start_capture(),
+			// This should strictly go *after* the capture start,
+			// behaviour is undefined, otherwise.
+			make_zone(name),
+			body.stream(),
+		]
 		.into_iter()
 		.collect();
 	tokens.push(TokenTree::Group(Group::new(Delimiter::Brace, augmented_body)));
@@ -185,7 +217,7 @@ fn try_instrument(item: TokenStream) -> Result<TokenStream, Error> {
 		_ => unreachable!(),
 	};
 
-	let instrumented_body = vec![make_our_zone(name), body.stream()]
+	let instrumented_body = vec![make_zone(name), body.stream()]
 		.into_iter()
 		.collect();
 	tokens.push(TokenTree::Group(Group::new(Delimiter::Brace, instrumented_body)));
@@ -216,7 +248,7 @@ fn make_start_capture() -> TokenStream {
 }
 
 // ::tracy_gizmos::zone!($text);
-fn make_our_zone(name: &str) -> TokenStream {
+fn make_zone(name: &str) -> TokenStream {
 	TokenStream::from_iter([
 		TokenTree::Punct(Punct::new(':', Spacing::Joint)),
 		TokenTree::Punct(Punct::new(':', Spacing::Alone)),
