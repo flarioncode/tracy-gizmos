@@ -1,6 +1,6 @@
 [package]
 name                 = "tracy-gizmos-attributes"
-version              = "0.0.1"
+version              = "0.0.2"
 description          = "Procedural macro attributes for automatic function instrumentation"
 authors.workspace    = true
 repository.workspace = true
@@ -11,4 +11,4 @@ edition.workspace    = true
 proc-macro = true
 
 [dev-dependencies]
-tracy-gizmos = { path = "../tracy-gizmos", version = "0.0.5" }
+tracy-gizmos = { path = "../tracy-gizmos", version = "0.0.*" }

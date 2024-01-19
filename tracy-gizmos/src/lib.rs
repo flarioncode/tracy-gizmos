@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg), deny(rustdoc::broken_intra_doc_links))]
 #![cfg_attr(any(doc, feature = "enabled"), deny(missing_docs))]
 #![cfg_attr(not(feature = "enabled"), allow(unused_variables))]
 #![cfg_attr(
