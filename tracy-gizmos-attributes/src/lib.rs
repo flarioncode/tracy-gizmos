@@ -39,7 +39,25 @@ use proc_macro::{
 	Punct,
 };
 
-/// @Incomplete
+/// Instruments a function to create and start a profiling capture
+/// session.
+///
+/// Session will end automatically at the end of the function' scope.
+///
+/// ## Examples
+///
+/// ```
+/// # use tracy_gizmos_attributes::{capture, instrument};
+/// #[capture]
+/// fn main() {
+///     work();
+/// }
+///
+/// #[instrument]
+/// fn work() {
+///    // do stuff
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn capture(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	// Cloning a `TokenStream` is cheap since it's reference counted
