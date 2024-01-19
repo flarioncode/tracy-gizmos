@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Removed
 
+## [0.0.6] - 2024-01-xx
+
+### Added
+
+- `#[instrument]` attribute to instrument functions automatically.
+
+### Changed
+
+- `TracyClient::new` is gone, use `start_capture()` instead.
+
+### Fixed
+
+- Changelog comparison-between-releases links are correct now.
+
 ## [0.0.5] - 2024-01-17
 
 ### Fixed
@@ -52,9 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial implementation of zones, frames, plots & messages
 
-[unreleased]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/den-mentiei/tracy-gizmos/releases/tag/v0.0.1
-[0.0.2]: https://github.com/den-mentiei/tracy-gizmos/releases/tag/v0.0.1..v0.0.2
-[0.0.3]: https://github.com/den-mentiei/tracy-gizmos/releases/tag/v0.0.2..v0.0.3
-[0.0.4]: https://github.com/den-mentiei/tracy-gizmos/releases/tag/v0.0.3..v0.0.4
+[unreleased]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.5...HEAD
 [0.0.5]: https://github.com/den-mentiei/tracy-gizmos/releases/tag/v0.0.4..v0.0.5
+[0.0.4]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.3..v0.0.4
+[0.0.3]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.2..v0.0.3
+[0.0.2]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.1..v0.0.2
+[0.0.1]: https://github.com/den-mentiei/tracy-gizmos/releases/tag/v0.0.1

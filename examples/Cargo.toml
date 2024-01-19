@@ -4,8 +4,8 @@ publish = false
 edition = "2021"
 
 [dev-dependencies]
-tracy-gizmos = { path = "../tracy-gizmos" }
+tracy-gizmos = { path = "../tracy-gizmos", features = ["attributes"] }
 
 [features]
 default      = []
-instrumented = ["tracy-gizmos/enabled"]
+instrumented = ["tracy-gizmos/enabled", "tracy-gizmos/no-exit"]

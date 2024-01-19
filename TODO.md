@@ -1,11 +1,17 @@
 # TODO
 
+- [ ] rename start & tracy client
+- [ ] proc-macro attribute to mark main and setup the client
 - [ ] auto-function proc-macro attributes:
-	- [ ] #[zone]
-	- [ ] #[zone(name)]
-	- [ ] #[zone(color)]
-	- [ ] #[zone(name, color)]
+	- [x] #[instrument]
+	- [ ] #[instrument(name)]
+	- [ ] #[instrument(color)]
+	- [ ] #[instrument(name, color)]
 	- [ ] + callstacks?! + enabled
+	- [ ] + parameters to include as dynamic data
+	- [x] write nice error messages :Errors
+- [ ] proc-macro attribute over impl to mark every method
+	- [ ] ability to skip methods
 - [ ] callstacks! depth is at most 62
 - [ ] what's up with locks & C API
 - [ ] what's up with alloc & free, named overloads

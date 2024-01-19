@@ -99,6 +99,12 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 
+// #[cfg(any(doc, feature = "attributes"))]
+// #[cfg_attr(docsrs, doc(cfg(feature = "attributes")))]
+// #[doc(inline)]
+#[cfg(feature = "attributes")]
+pub use attrs::instrument;
+
 mod color;
 mod plot;
 
