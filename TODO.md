@@ -11,6 +11,7 @@
 	- [x] write nice error messages :Errors
 - [ ] proc-macro attribute over impl to mark every method
 	- [ ] ability to skip methods
+- [ ] add proc-macro attribue tests
 - [ ] callstacks! depth is at most 62
 - [ ] what's up with locks & C API
 - [ ] what's up with alloc & free, named overloads
