@@ -10,4 +10,5 @@ publish              = false # @Incomplete
 [lib]
 proc-macro = true
 
-[dependencies]
+[dev-dependencies]
+tracy-gizmos = { path = "../tracy-gizmos", version = "0.0.6" }

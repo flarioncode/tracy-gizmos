@@ -2,6 +2,33 @@
 #![allow(unused_variables)]
 #![allow(unused_mut)]
 
+//! A procedural macro attribute for instrumenting functions with
+//! [`tracy-gizmos`] zones.
+//!
+//! ## Usage
+//!
+//! In the `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! tracy-gizmos-attributes = "0.0.1"
+//! ```
+//!
+//! The [`#[instrument]`][instrument] attribute can now be added to a
+//! function to automatically create and enter a `tracy-gizmos` [zone]
+//! when that function is called. For example:
+//!
+//! ```no_run
+//! #[tracy_gizmos_attributes::instrument]
+//! fn work() {
+//!     // do stuff
+//! }
+//! ```
+//!
+//! [`tracy-gizmos`]: https://crates.io/crates/tracy-gizmos
+//! [zone]: https://docs.rs/tracy-gizmos/latest/tracy_gizmos/struct.Zone.html
+//! [instrument]: macro@self::instrument
+
 use proc_macro::{
 	TokenStream,
 	TokenTree,
@@ -14,6 +41,42 @@ use proc_macro::{
 	Punct,
 };
 
+/// Instruments a function to create and enter a zone every time the
+/// function is called.
+///
+/// The generated zone's name will be the name of the function.
+///
+/// ## Examples
+///
+/// ```
+/// # use tracy_gizmos_attributes::instrument;
+/// #[instrument]
+/// fn work() {
+///    // do stuff
+/// }
+/// ```
+///
+/// `const fn` cannot be instrumented, and will result in a compilation
+/// failure:
+///
+/// ```compile_fail
+/// # use tracy_gizmos_attributes::instrument;
+/// #[instrument]
+/// const fn work() {
+///    // do stuff
+/// }
+/// ```
+///
+/// `async fn` cannot be instrumented, *yet*, and will result in a
+/// compilation failure:
+///
+/// ```compile_fail
+/// # use tracy_gizmos_attributes::instrument
+/// #[instrument]
+/// async fn work() {
+///    // do stuff
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn instrument(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	// Cloning a `TokenStream` is cheap since it's reference counted

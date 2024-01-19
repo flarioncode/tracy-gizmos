@@ -1,6 +1,6 @@
 [package]
 name                 = "tracy-gizmos"
-version              = "0.0.5"
+version              = "0.0.6"
 description          = "Bindings for the client library of the Tracy profiler"
 keywords             = ["profiler", "performance", "tracy", "api-bindings"]
 categories           = ["development-tools::profiling", "api-bindings"]
@@ -41,3 +41,7 @@ no-exit                 = ["sys/no-exit"]
 broadcast               = ["sys/broadcast"]
 only-localhost          = ["sys/only-localhost"]
 only-ipv4               = ["sys/only-ipv4"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -33,10 +33,33 @@
 //!     work();
 //! }
 //! ```
+//!
+//! The [`#[instrument]`][instrument] attribute provies an easy way to
+//! add Tracy zones to functions. A function annotated with
+//! `#[instrument]` will create and enter a zone with that function's
+//! name everytime the function is called.
+//!
+//! For example:
+//!
+//! ```ignore
+//! # // this doctest is ignored, because it is impossible
+//! # // to run it with cfg(feature = "attributes").
+//! #[tracy_gizmos::instrument]
+//! fn work() {
+//!     // do stuff
+//! }
+//! ```
+//!
+//! You can find more examples showing how to use this crate
+//! [here][examples].
+//!
+//! [examples]: https://github.com/den-mentiei/tracy-gizmos/tree/main/examples
+//!
 //! # Features
 //!
 //! - **`enabled`** - enables the instrumentation and everything
 //! related to it.
+//! - **`attributes`** - includes support for the `#[instrument]` attribute.
 //! - **`unstable-function-names`** *(nightly only)* -
 //! includes the enclosing function name into every zone without
 //! additional runtime overhead.
@@ -98,9 +121,8 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 
-// #[cfg(any(doc, feature = "attributes"))]
-// #[cfg_attr(docsrs, doc(cfg(feature = "attributes")))]
-// #[doc(inline)]
+#[cfg_attr(docsrs, doc(cfg(feature = "attributes")))]
+#[doc(inline)]
 #[cfg(feature = "attributes")]
 pub use attrs::instrument;
 
