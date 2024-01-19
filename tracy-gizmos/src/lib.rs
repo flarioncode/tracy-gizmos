@@ -125,7 +125,7 @@ use std::marker::PhantomData;
 #[cfg_attr(docsrs, doc(cfg(feature = "attributes")))]
 #[doc(inline)]
 #[cfg(feature = "attributes")]
-pub use attrs::instrument;
+pub use attrs::{instrument, capture};
 
 mod color;
 mod plot;

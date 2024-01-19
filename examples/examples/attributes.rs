@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
+#[tracy_gizmos::capture]
 fn main() {
-	let _tracy = tracy_gizmos::start_capture();
 	work();
 }
 

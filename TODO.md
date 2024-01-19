@@ -1,6 +1,5 @@
 # TODO
 
-- [ ] proc-macro attribute to mark main and setup the capture
 - [ ] auto-function proc-macro attributes:
 	- [x] #[instrument]
 	- [ ] #[instrument(name)]
@@ -11,12 +10,14 @@
 	- [x] write nice error messages :Errors
 - [ ] proc-macro attribute over impl to mark every method
 	- [ ] ability to skip methods
+- [ ] add messages example
 - [ ] add proc-macro attribue tests
 - [ ] callstacks! depth is at most 62
 - [ ] what's up with locks & C API
 - [ ] what's up with alloc & free, named overloads
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] proc-macro attribute to mark main and setup the capture
 - [x] rename start & tracy client
 - [x] add examples in a workspace with a separate cargo to test better
 - [x] enable function names only on nightly via `build.rs` and `cargo:rustc-cfg=nightly`

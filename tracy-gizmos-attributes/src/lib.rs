@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_mut)]
+#![deny(missing_docs)]
 
 //! A procedural macro attribute for instrumenting functions with
 //! [`tracy-gizmos`] zones.
@@ -40,6 +38,42 @@ use proc_macro::{
 	Literal,
 	Punct,
 };
+
+/// @Incomplete
+#[proc_macro_attribute]
+pub fn capture(_attr: TokenStream, item: TokenStream) -> TokenStream {
+	// Cloning a `TokenStream` is cheap since it's reference counted
+	// internally.
+	let with_capture = try_capture(item.clone());
+	// We chain both error and original item, to prevent the
+	// generation of two compilation errors: one from us and another
+	// one (or multiple, even) caused by original item being skipped.
+	match with_capture {
+		Ok(item) => item,
+		Err(e)   => TokenStream::from_iter(e.to_compile_error().into_iter().chain(item)),
+	}
+}
+
+fn try_capture(item: TokenStream) -> Result<TokenStream, Error> {
+	let mut tokens: Vec<TokenTree> = item.into_iter().collect();
+
+	// @Robustness Check and issue a nice error, if item is not a
+	// function.
+
+	// The function body should be the last token tree.
+	let body = match tokens.pop() {
+		Some(TokenTree::Group(g)) if g.delimiter() == Delimiter::Brace => g,
+		Some(t) => return Err(Error::new("Function without a body can't be a capture scope.", t.span())),
+		_ => unreachable!(),
+	};
+
+	let augmented_body = vec![make_start_capture(), body.stream()]
+		.into_iter()
+		.collect();
+	tokens.push(TokenTree::Group(Group::new(Delimiter::Brace, augmented_body)));
+
+	Ok(TokenStream::from_iter(tokens))
+}
 
 /// Instruments a function to create and enter a zone every time the
 /// function is called.
@@ -98,8 +132,7 @@ fn try_instrument(item: TokenStream) -> Result<TokenStream, Error> {
 	// ... const? async? fn $name:ident ... {}?
 
 	let mut tokens: Vec<TokenTree> = item.into_iter().collect();
-
-	let mut tokens_it = tokens.iter();
+	let mut tokens_it              = tokens.iter();
 
 	for t in tokens_it.by_ref() {
 		if let TokenTree::Ident(i) = t {
@@ -142,6 +175,28 @@ fn try_instrument(item: TokenStream) -> Result<TokenStream, Error> {
 	Ok(TokenStream::from_iter(tokens))
 }
 
+// let _tracy = tracy_gizmos::start_capture();
+fn make_start_capture() -> TokenStream {
+	TokenStream::from_iter([
+		TokenTree::Ident(Ident::new("let",    Span::call_site())),
+		TokenTree::Ident(Ident::new("_tracy", Span::mixed_site())),
+		TokenTree::Punct(Punct::new('=', Spacing::Alone)),
+		TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+		TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+		TokenTree::Ident(Ident::new("tracy_gizmos", Span::call_site())),
+		TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+		TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+		TokenTree::Ident(Ident::new("start_capture", Span::call_site())),
+		TokenTree::Group(
+			Group::new(
+				Delimiter::Parenthesis,
+				TokenStream::new(),
+			)
+		),
+		TokenTree::Punct(Punct::new(';', Spacing::Alone)),
+	])
+}
+
 // ::tracy_gizmos::zone!($text);
 fn make_our_zone(name: &str) -> TokenStream {
 	TokenStream::from_iter([
@@ -154,12 +209,13 @@ fn make_our_zone(name: &str) -> TokenStream {
 		TokenTree::Punct(Punct::new('!', Spacing::Alone)),
 		TokenTree::Group(
 			Group::new(
-				Delimiter::Brace,
+				Delimiter::Parenthesis,
 				TokenStream::from_iter([
 					TokenTree::Literal(Literal::string(name)),
 				])
 			)
 		),
+		TokenTree::Punct(Punct::new(';', Spacing::Alone)),
 	])
 }
 
