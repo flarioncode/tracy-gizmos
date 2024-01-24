@@ -1,0 +1,32 @@
+name: Sanity check
+
+on:
+  push:
+    branches:
+      - main
+    pull_request:
+      types: [opened, reopened]
+      paths-ignore: ['**.md']
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo check --verbose
+      - run: cargo check --verbose -F enabled -F attributes
+      - run: cargo test
+      - run: cargo test -F enabled -F attributes
+      - run: cargo build --examples
+      - run: cargo build --examples -F instrumented

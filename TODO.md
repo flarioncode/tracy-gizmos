@@ -1,5 +1,9 @@
 # TODO
 
+- [ ] ci on github
+- [ ] xtasks for tests/deploy
+- [ ] add examples readme and comment them more
+- [ ] add messages example
 - [ ] auto-function proc-macro attributes:
 	- [x] #[instrument]
 	- [ ] #[instrument(name)]
@@ -10,8 +14,8 @@
 	- [x] write nice error messages :Errors
 - [ ] proc-macro attribute over impl to mark every method
 	- [ ] ability to skip methods
-- [ ] add messages example
-- [ ] add proc-macro attribue tests
+- [ ] support `plot!` in expr pos
+- [ ] add proc-macro attribute tests
 - [ ] callstacks! depth is at most 62
 - [ ] what's up with locks & C API
 - [ ] what's up with alloc & free, named overloads
