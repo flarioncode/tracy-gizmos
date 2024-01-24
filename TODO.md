@@ -1,6 +1,5 @@
 # TODO
 
-- [ ] ci on github
 - [ ] xtasks for tests/deploy
 - [ ] add examples readme and comment them more
 - [ ] add messages example
@@ -21,6 +20,7 @@
 - [ ] what's up with alloc & free, named overloads
 - [ ] gfx things
 - [ ] dbghelp thread-safety on windows
+- [x] ci on github
 - [x] proc-macro attribute to mark main and setup the capture
 - [x] rename start & tracy client
 - [x] add examples in a workspace with a separate cargo to test better
