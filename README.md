@@ -4,6 +4,7 @@
 [![MIT licensed][mit-badge]][mit-url]
 [![Apache licensed][apache-badge]][apache-url]
 [![API](https://docs.rs/tracy-gizmos/badge.svg)][docs.rs]
+[![ci][ci-badge]][ci-url]
 
 [Latest Version]: https://img.shields.io/crates/v/tracy-gizmos.svg
 [crates.io]: https://crates.io/crates/tracy-gizmos
@@ -12,6 +13,8 @@
 [mit-url]: https://github.com/den-mentiei/tracy-gizmos/blob/main/LICENSE-MIT
 [apache-badge]: https://img.shields.io/badge/license-Apache%202.0-blue.svg
 [apache-url]: https://github.com/den-mentiei/tracy-gizmos/blob/main/LICENSE-APACHE
+[ci-badge]: https://img.shields.io/github/actions/workflow/status/den-mentiei/tracy-gizmos/ci.yml
+[ci-url]: https://github.com/den-mentiei/tracy-gizmos/actions/workflows/ci.yml?query=branch%3Amain
 
 ## Overview
 
