@@ -12,11 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Removed
 
-## [Unreleased] - 2024-01-xx
+## [Unreleased] - 2024-xx-xx
 
 ### Added
 
 - `#[capture]` attribute to instrument main added.
+
+### Fixed
+
+- `sys` is no longer compiled when we are not `enabled`, but some
+  other features are set (e.g. `no-exit`).
 
 ### Changed
 
