@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `#[capture]` attribute to instrument main added.
 - `#[instrument("prefix")]` is now supported.
 - `emit_alloc!` & `emit_free!` to track allocations.
+- memory example
 
 ### Fixed
 

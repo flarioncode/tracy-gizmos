@@ -174,28 +174,40 @@ pub use plot::*;
 /// });
 /// ```
 #[macro_export]
+#[cfg(any(doc, feature = "enabled"))]
 macro_rules! set_thread_name {
 	($name:literal) => {
-		// @Bug It doesn't work this way.
-		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
 			$crate::details::set_thread_name(concat!($name, '\0').as_ptr());
 		}
 	};
 
-	($format:literal, $($args:expr),*) => {
-		// @Bug It doesn't work this way.
-		#[cfg(feature = "enabled")]
-		{
-			let name = format!(concat!($format, '\0'), $($args),*).into_bytes();
-			// SAFETY: We null-terminated the string during formatting.
-			unsafe {
-				let name = std::ffi::CString::from_vec_with_nul_unchecked(name);
-				$crate::details::set_thread_name(name.as_ptr().cast());
-			}
+	($format:literal, $($args:expr),*) => {{
+		let name = format!(concat!($format, '\0'), $($args),*).into_bytes();
+		// SAFETY: We null-terminated the string during formatting.
+		unsafe {
+			let name = std::ffi::CString::from_vec_with_nul_unchecked(name);
+			$crate::details::set_thread_name(name.as_ptr().cast());
 		}
+	}};
+}
+
+#[macro_export]
+#[cfg(all(not(doc), not(feature = "enabled")))]
+macro_rules! set_thread_name {
+	($name:literal) => {
+		// Silence unused expression warning.
+		_ = $name;
 	};
+
+	($format:literal, $($args:expr),*) => {{
+		// Silence unused expression warnings.
+		_ = $format;
+		$(
+			_ = $args;
+		)*
+	}};
 }
 
 /// Sends a message to Tracy's log.
