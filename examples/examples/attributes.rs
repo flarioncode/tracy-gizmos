@@ -5,7 +5,7 @@ fn main() {
 	work();
 }
 
-#[tracy_gizmos::instrument]
+#[tracy_gizmos::instrument("Main")]
 fn work() {
 	println!("I am instrumented.");
 	std::thread::sleep(std::time::Duration::from_millis(100));

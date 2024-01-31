@@ -140,6 +140,20 @@ fn try_capture(item: TokenStream) -> Result<TokenStream, Error> {
 /// }
 /// ```
 ///
+/// ### Zone customization
+///
+/// The generated zone's name could be prefixed:
+///
+/// ```
+/// # use tracy_gizmos_attributes::instrument;
+/// #[instrument("Heavy")]
+/// fn work() {
+///    // will contain a zone named "Heavy::work"
+/// }
+/// ```
+///
+/// ### Unsupported cases
+///
 /// `const fn` cannot be instrumented, and will result in a compilation
 /// failure:
 ///
@@ -162,10 +176,10 @@ fn try_capture(item: TokenStream) -> Result<TokenStream, Error> {
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn instrument(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn instrument(attr: TokenStream, item: TokenStream) -> TokenStream {
 	// Cloning a `TokenStream` is cheap since it's reference counted
 	// internally.
-	let instrumented = try_instrument(item.clone());
+	let instrumented = try_instrument(attr, item.clone());
 	// We chain both error and original item, to prevent the
 	// generation of two compilation errors: one from us and another
 	// one (or multiple, even) caused by original item being skipped.
@@ -175,11 +189,18 @@ pub fn instrument(_attr: TokenStream, item: TokenStream) -> TokenStream {
 	}
 }
 
-fn try_instrument(item: TokenStream) -> Result<TokenStream, Error> {
+fn try_instrument(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
 	// Function item's grammar:
 	// https://doc.rust-lang.org/reference/items/functions.html
 	// Put simply, it boils down to:
 	// ... const? async? fn $name:ident ... {}?
+
+	let prefix = if let Some(TokenTree::Literal(s)) = attr.into_iter().next() {
+		Some(s.to_string())
+	} else {
+		None
+	};
+	let prefix = prefix.as_ref().and_then(|p| try_parse_str_literal(p));
 
 	let mut tokens: Vec<TokenTree> = item.into_iter().collect();
 	let mut tokens_it              = tokens.iter();
@@ -210,6 +231,13 @@ fn try_instrument(item: TokenStream) -> Result<TokenStream, Error> {
 	// whatever.
 	let name = name.strip_prefix("r#").unwrap_or(&name);
 
+	let prefixed_name = prefix.map(|p| format!("{p}::{name}"));
+	let name = if let Some(ref name) = prefixed_name {
+		name
+	} else {
+		name
+	};
+
 	// The function body should be the last token tree.
 	let body = match tokens.pop() {
 		Some(TokenTree::Group(g)) if g.delimiter() == Delimiter::Brace => g,
@@ -223,6 +251,16 @@ fn try_instrument(item: TokenStream) -> Result<TokenStream, Error> {
 	tokens.push(TokenTree::Group(Group::new(Delimiter::Brace, instrumented_body)));
 
 	Ok(TokenStream::from_iter(tokens))
+}
+
+fn try_parse_str_literal(s: &str) -> Option<&str> {
+	let s = s.as_bytes();
+	if s.len() >= 2 && s[0] == b'"' {
+		// SAFETY: Source of bytes is always a correct utf-8 string.
+		Some(unsafe { std::str::from_utf8_unchecked(&s[1..s.len() - 1]) })
+	} else {
+		None
+	}
 }
 
 // let _tracy = tracy_gizmos::start_capture();
