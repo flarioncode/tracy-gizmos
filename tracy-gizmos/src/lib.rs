@@ -128,6 +128,7 @@ use std::marker::PhantomData;
 pub use attrs::{instrument, capture};
 
 mod color;
+mod memory;
 mod plot;
 
 pub use color::*;
@@ -175,6 +176,7 @@ pub use plot::*;
 #[macro_export]
 macro_rules! set_thread_name {
 	($name:literal) => {
+		// @Bug It doesn't work this way.
 		#[cfg(feature = "enabled")]
 		// SAFETY: We null-terminate the string.
 		unsafe {
@@ -183,6 +185,7 @@ macro_rules! set_thread_name {
 	};
 
 	($format:literal, $($args:expr),*) => {
+		// @Bug It doesn't work this way.
 		#[cfg(feature = "enabled")]
 		{
 			let name = format!(concat!($format, '\0'), $($args),*).into_bytes();
@@ -837,6 +840,7 @@ pub fn app_info(info: &str) {
 #[doc(hidden)]
 #[cfg(feature = "enabled")]
 pub mod details {
+	use std::ffi::c_void;
 	use super::*;
 
 	#[inline(always)]
@@ -922,6 +926,26 @@ pub mod details {
 	pub unsafe fn discontinuous_frame(name: *const i8) -> Frame {
 		sys::___tracy_emit_frame_mark_start(name);
 		Frame(name)
+	}
+
+	#[inline(always)]
+	pub unsafe fn track_alloc<T>(name: *const u8, ptr: *const T, size: usize) {
+		track_alloc_impl(name, ptr.cast(), size);
+	}
+
+	#[inline(always)]
+	unsafe fn track_alloc_impl(name: *const u8, ptr: *const c_void, size: usize) {
+		sys::___tracy_emit_memory_alloc_named(ptr, size, 0, name.cast());
+	}
+
+	#[inline(always)]
+	pub unsafe fn track_free<T>(name: *const u8, ptr: *const T) {
+		track_free_impl(name, ptr.cast());
+	}
+
+	#[inline(always)]
+	unsafe fn track_free_impl(name: *const u8, ptr: *const c_void) {
+		sys::___tracy_emit_memory_free_named(ptr, 0, name.cast());
 	}
 
 	// Function name trick only works with an unstable

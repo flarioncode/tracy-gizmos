@@ -1,5 +1,7 @@
-use std::thread::sleep;
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::{
+	thread::sleep,
+	time::{SystemTime, UNIX_EPOCH, Duration},
+};
 
 use tracy_gizmos::{
 	Color,

@@ -12,20 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Removed
 
-## [Unreleased] - 2024-xx-xx
+## [0.0.8] - 2024-01-31
 
 ### Added
 
 - `#[capture]` attribute to instrument main added.
+- `#[instrument("prefix")]` is now supported.
+- `emit_alloc!` & `emit_free!` to track allocations.
 
 ### Fixed
 
 - `sys` is no longer compiled when we are not `enabled`, but some
   other features are set (e.g. `no-exit`).
+- `set_thread_name!` wasn't respecting `enabled` feature-gate
+  properly, sigh.
 
 ### Changed
 
 - minor example updates
+- `plot!` can now be used in expression position.
 
 ## [0.0.7] - 2024-01-19
 
@@ -89,7 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial implementation of zones, frames, plots & messages
 
-[unreleased]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.7...HEAD
+[unreleased]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.7..v0.0.8
 [0.0.7]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.6..v0.0.7
 [0.0.6]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.5..v0.0.6
 [0.0.5]: https://github.com/den-mentiei/tracy-gizmos/compare/v0.0.4..v0.0.5
