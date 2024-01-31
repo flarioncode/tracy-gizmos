@@ -46,8 +46,8 @@ fn main() {
 	for i in 0..POINTS {
 		let r = lcg(&mut seed) as i64;
 
+		let r = plot!("random", r % 1000);
 		plot!("i", i as i64);
-		plot!("random", r % 1000);
 		plot!(percents, r % 100);
 		plot!(highmark, r);
 

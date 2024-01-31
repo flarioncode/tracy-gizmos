@@ -2,32 +2,54 @@ use std::ffi::CStr;
 
 use crate::Color;
 
-/// Emits a new value for the specific plot.
+/// Takes a value, emits it into the specific plot and returns the
+/// value back.
 ///
 /// Supported value types are: `i64`, `f64`, `f32`.
+///
+/// Invoking the macro on an expression moves and takes ownership of
+/// it before returning the evaluated expression unchanged. As all
+/// supported types implement `Copy`, you can stop caring about
+/// ownership.
 ///
 /// # Examples
 /// ```no_run
 /// # use tracy_gizmos::*;
 /// # let mut draw_calls = 0;
+/// # fn get_size() -> i64 { todo!() }
 /// draw_calls += 1;
 /// plot!("Draw calls", draw_calls);
+/// let size = plot!("Current Size", get_size());
 /// ```
 #[macro_export]
 macro_rules! plot {
-	($name:literal, $value:expr) => {{
-		use $crate::PlotEmit;
-		$crate::Plot::new(
-			// SAFETY: We null-terminate the string.
-			unsafe {
-				std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
-			},
-		).emit($value);
-	}};
+	($name:literal, $value:expr) => {
+		// match works as `let .. in` and is required to properly
+		// manage lifetimes.
+		match $value {
+			tmp => {
+				use $crate::PlotEmit;
+				$crate::Plot::new(
+					// SAFETY: We null-terminate the string.
+					unsafe {
+						std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($name, '\0').as_bytes())
+					},
+				).emit(tmp);
+				tmp
+			}
+		}
+	};
 
 	($plot:ident, $value:expr) => {{
-		use $crate::PlotEmit;
-		$plot.emit($value);
+		// match works as `let .. in` and is required to properly
+		// manage lifetimes.
+		match $value {
+			tmp => {
+				use $crate::PlotEmit;
+				$plot.emit(tmp);
+				tmp
+			}
+		}
 	}};
 }
 
@@ -91,7 +113,7 @@ pub struct Plot(#[cfg(feature = "enabled")] &'static CStr);
 #[doc(hidden)]
 impl Plot {
 	#[inline(always)]
-	pub fn new(name: &'static CStr) -> Self {
+	pub const fn new(name: &'static CStr) -> Self {
 		Self(#[cfg(feature = "enabled")] name)
 	}
 
