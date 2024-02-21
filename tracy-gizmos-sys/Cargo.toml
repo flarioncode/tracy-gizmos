@@ -1,6 +1,6 @@
 [package]
 name        = "tracy-gizmos-sys"
-version     = "0.10.0"
+version     = "0.11.0"
 authors     = ["Denys Mentiei <endden@gmail.com>"]
 description = "Bindings for the Tracy C API"
 license     = "MIT OR Apache-2.0"

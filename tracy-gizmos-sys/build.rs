@@ -50,6 +50,7 @@ fn main() {
 	let mut builder = cc::Build::new();
 	builder
 		.cpp(true)
+		.flag("-std=c++11")
 		.file(tracy.join("TracyClient.cpp"))
 		// We always enable it to simplify things. If profiling is not needed,
 		// this crate as a dependency could be optional.
