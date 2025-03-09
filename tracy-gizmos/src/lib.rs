@@ -540,7 +540,7 @@ impl Drop for TracyCapture {
 #[macro_export]
 #[cfg(feature = "unstable-function-names")]
 macro_rules! create_function_name_for_zone {
-		($FUNCTION: ident) => {
+	($FUNCTION: ident) => {
 		struct X;
 		const $FUNCTION: &'static [u8] = {
 			&$crate::details::get_fn_name_from_nested_type::<X>()
@@ -551,9 +551,9 @@ macro_rules! create_function_name_for_zone {
 #[macro_export]
 #[cfg(not(feature = "unstable-function-names"))]
 macro_rules! create_function_name_for_zone {
-		($FUNCTION: ident) => {
+	($FUNCTION: ident) => {
 		const $FUNCTION: &'static [u8] = b"<unavailable>\0";
-		};
+	};
 }
 
 /// Instruments the current scope with a profiling zone.
