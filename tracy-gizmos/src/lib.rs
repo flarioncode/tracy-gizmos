@@ -536,6 +536,26 @@ impl Drop for TracyCapture {
 	}
 }
 
+#[doc(hidden)]
+#[macro_export]
+#[cfg(feature = "unstable-function-names")]
+macro_rules! create_function_name_for_zone {
+		($FUNCTION: ident) => {
+		struct X;
+		const $FUNCTION: &'static [u8] = {
+			&$crate::details::get_fn_name_from_nested_type::<X>()
+		};
+	}
+}
+#[doc(hidden)]
+#[macro_export]
+#[cfg(not(feature = "unstable-function-names"))]
+macro_rules! create_function_name_for_zone {
+		($FUNCTION: ident) => {
+		const $FUNCTION: &'static [u8] = b"<unavailable>\0";
+		};
+}
+
 /// Instruments the current scope with a profiling zone.
 ///
 /// A zone represents the lifetime of a special on-stack profiler
@@ -647,16 +667,7 @@ macro_rules! zone {
 
 	(@loc $name:literal, $color: expr) => {{
 		// This is an implementation detail and can be changed at any moment.
-
-		#[cfg(feature = "unstable-function-names")]
-		struct X;
-		#[cfg(feature = "unstable-function-names")]
-		const FUNCTION: &'static [u8] = {
-			&$crate::details::get_fn_name_from_nested_type::<X>()
-		};
-
-		#[cfg(not(feature = "unstable-function-names"))]
-		const FUNCTION: &'static [u8] = b"<unavailable>\0";
+		$crate::create_function_name_for_zone!(FUNCTION);
 
 		// SAFETY: All passed data is created here and is correct.
 		static LOC: $crate::ZoneLocation = unsafe {
