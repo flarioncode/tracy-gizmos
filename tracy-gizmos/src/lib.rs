@@ -823,7 +823,7 @@ impl Drop for Frame {
 		// frame! macro, which ensures that contained pointer is
 		// correct.
 		unsafe {
-			sys::___tracy_emit_frame_mark_end(self.0);
+			sys::___tracy_emit_frame_mark_end(self.0.cast());
 		}
 	}
 }
@@ -947,7 +947,7 @@ pub mod details {
 
 	#[inline(always)]
 	pub unsafe fn discontinuous_frame(name: *const i8) -> Frame {
-		sys::___tracy_emit_frame_mark_start(name);
+		sys::___tracy_emit_frame_mark_start(name.cast());
 		Frame(name)
 	}
 
