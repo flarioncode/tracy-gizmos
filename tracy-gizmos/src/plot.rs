@@ -176,6 +176,10 @@ pub fn intern_plot_name(name: &str) -> &'static CStr {
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
         .unwrap();
+    if let Some(val) = map.get(name) {
+           return val;
+    }
+
     map.entry(name.into()).or_insert_with(|| {
         Box::leak(
             std::ffi::CString::new(name)
