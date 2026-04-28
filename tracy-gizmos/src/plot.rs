@@ -40,7 +40,7 @@ macro_rules! plot {
 		}
 	};
 
-	($plot:ident, $value:expr) => {{
+	($plot:expr, $value:expr) => {{
 		// match works as `let .. in` and is required to properly
 		// manage lifetimes.
 		match $value {
@@ -163,6 +163,31 @@ macro_rules! impl_emit {
 impl_emit!(f64, ___tracy_emit_plot);
 impl_emit!(f32, ___tracy_emit_plot_float);
 impl_emit!(i64, ___tracy_emit_plot_int);
+
+/// Tracy stores the pointer as a uint64_t identifier and may dereference it
+/// later (via ServerQueryPlotName), so names must be effectively 'static.
+/// This interns to allocate at most once per unique name.
+#[doc(hidden)]
+pub fn intern_plot_name(name: &str) -> &'static CStr {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+    static INTERNER: OnceLock<Mutex<HashMap<Box<str>, &'static CStr>>> = OnceLock::new();
+    let mut map = INTERNER
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap();
+    if let Some(val) = map.get(name) {
+           return val;
+    }
+
+    let cstring = Box::leak(
+            std::ffi::CString::new(name)
+                .expect("plot name must not contain null bytes")
+                .into_boxed_c_str(),
+        );
+    map.insert(name.into(), cstring);
+    cstring
+}
 
 /// A plot configuration, which controls the way plot will be
 /// displayed.
