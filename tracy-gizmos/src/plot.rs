@@ -180,13 +180,13 @@ pub fn intern_plot_name(name: &str) -> &'static CStr {
            return val;
     }
 
-    map.entry(name.into()).or_insert_with(|| {
-        Box::leak(
+    let cstring = Box::leak(
             std::ffi::CString::new(name)
                 .expect("plot name must not contain null bytes")
                 .into_boxed_c_str(),
-        )
-    })
+        );
+    map.insert(name.into(), cstring);
+    cstring
 }
 
 /// A plot configuration, which controls the way plot will be
