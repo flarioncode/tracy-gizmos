@@ -40,7 +40,7 @@ macro_rules! plot {
 		}
 	};
 
-	($plot:ident, $value:expr) => {{
+	($plot:expr, $value:expr) => {{
 		// match works as `let .. in` and is required to properly
 		// manage lifetimes.
 		match $value {
